@@ -1,64 +1,23 @@
-# mm-bmad (Central BMAD Brain)
+# mm-bmad (BMAD Central Universal Wrapper)
 
-This private repository acts as the central intelligence hub for your GitHub Agentic Workflows. It contains the reusable GitHub Actions YAML wrappers and the natural language Markdown agent prompts.
+This private repository is the central brain for running the **BMAD Method** autonomously via **GitHub Agentic Workflows**.
+
+Instead of hardcoding out-of-date agent instructions, this repository uses a **Universal Wrapper Architecture**. The central agent dynamically reads your project's local `_bmad` installation to execute the official, up-to-date workflows. When BMAD updates upstream, your agents automatically inherit the new rules without requiring changes here.
+
+## The Architecture
+Please read the comprehensive design document explaining how this wrapper solves infinite loops, requests human intervention, and dynamically links to the BMAD core:
+[BMAD Wrapper Design & Deep Research](architecture/BMAD_WRAPPER_DESIGN.md)
 
 ## How to Deploy to Other Projects
 
-Because this is a **private repository**, your other projects will need a Personal Access Token (PAT) to read these workflows.
+Because this is a **private repository**, your other projects will need a Personal Access Token (PAT) to read these reusable workflows.
 
 ### 1. Create a PAT
 1. Go to your GitHub Settings -> Developer Settings -> Personal access tokens.
-2. Create a classic token with `repo` scope, or a fine-grained token with read access to `jcampb/mm-bmad`.
+2. Create a token with `repo` scope (or fine-grained with read access to `jcampb/mm-bmad`).
 3. In your target project repository, add this token as a Repository Secret named `BMAD_CENTRAL_TOKEN`.
 
-### 2. Add the Caller Workflows to your Target Project
-In the repository where you want the agents to operate, create these files:
+### 2. Configure Caller Workflows
+In the repository where you want the agents to operate, you map GitHub events (like labels or PR comments) to specific BMAD workflows by calling the universal runner.
 
-**`.github/workflows/bmad-create-story.yml`**
-```yaml
-name: BMAD Create Story
-on:
-  issues:
-    types: [opened]
-
-jobs:
-  call-central:
-    if: contains(github.event.issue.labels.*.name, 'bmad-story')
-    uses: jcampb/mm-bmad/.github/workflows/bmad-create-story.yml@main
-    secrets:
-      BMAD_CENTRAL_TOKEN: ${{ secrets.BMAD_CENTRAL_TOKEN }}
-```
-
-**`.github/workflows/bmad-dev-story.yml`**
-```yaml
-name: BMAD Dev Story
-on:
-  pull_request:
-    types: [opened, reopened]
-  pull_request_review:
-    types: [submitted]
-
-jobs:
-  call-central:
-    if: github.event.action == 'opened' || (github.event.action == 'submitted' && github.event.review.state == 'changes_requested')
-    uses: jcampb/mm-bmad/.github/workflows/bmad-dev-story.yml@main
-    secrets:
-      BMAD_CENTRAL_TOKEN: ${{ secrets.BMAD_CENTRAL_TOKEN }}
-```
-
-**`.github/workflows/bmad-code-review.yml`**
-```yaml
-name: BMAD Code Review
-on:
-  push:
-    branches-ignore: [main]
-
-jobs:
-  call-central:
-    uses: jcampb/mm-bmad/.github/workflows/bmad-code-review.yml@main
-    secrets:
-      BMAD_CENTRAL_TOKEN: ${{ secrets.BMAD_CENTRAL_TOKEN }}
-```
-
-### Configuring Skills per Project
-In any project using these agents, you can define custom skills (e.g., `frontend-design`, `security-auditor`) by creating a file at `.bmad/skills.md` in that specific repository. The central agents are programmed to dynamically read that file and adopt the requested skills during execution!
+See the [Caller Workflow Examples](examples/caller-workflows.md) for ready-to-use templates for Analysis, Planning, Implementation, and QA.
