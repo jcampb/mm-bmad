@@ -237,23 +237,16 @@ The implementation workflows use labels on the PR to track pipeline state:
 
 ```
 bmad-pipeline     (permanent — marks PR as BMAD-managed)
-bmad-dev-ready    → Create Story done, triggers glue → Dev Story
+bmad-dev-ready    → Create Story done (included on PR at creation)
 bmad-dev-active   → Dev Story is working
 bmad-review-pending → Dev Story done, Code Review incoming
 bmad-approved     → Code Review passed, human can merge
 needs-human-intervention → circuit breaker, halts everything
 ```
 
-### Pipeline Glue Workflow
+### Pipeline Chaining
 
-The file `workflows/bmad-pipeline-glue.yml` is a plain GitHub Actions workflow (NOT a gh-aw workflow). It handles the draft→ready conversion that no safe-output can do:
-
-- Triggers on `pull_request: labeled` with label `bmad-dev-ready`
-- Converts the draft PR to ready-for-review (`gh pr ready`)
-- Transitions labels: removes `bmad-dev-ready`, adds `bmad-dev-active`
-- The `ready_for_review` event then triggers Dev Story
-
-Target repos must copy this file to `.github/workflows/bmad-pipeline-glue.yml` alongside the compiled gh-aw workflows.
+Create Story creates a **non-draft** PR with `bmad-pipeline` + `bmad-dev-ready` labels. The `pull_request: opened` event triggers Dev Story directly. Dev Story's `pipeline-check` pre-step ensures only BMAD-managed PRs are processed. No glue workflow is needed — GitHub's native event routing handles the chain.
 
 ## Step 7: Write and Commit
 
