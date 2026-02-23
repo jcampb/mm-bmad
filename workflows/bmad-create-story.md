@@ -277,10 +277,9 @@ Compose the story file with these sections:
    - Place the story file at the appropriate location in the repository (e.g., within the implementation artifacts directory or `docs/stories/`)
    - PR title: `story: [story_key]`
    - PR body: Story creation for issue #[issue_number]. Include the story ID, story key, epic number, story number, story title, and a summary of the context included.
-   - **Base branch:** Set the base branch to `epic_branch` from the pre-step outputs (NOT main).
    - **Head branch:** Use `story_branch` from the pre-step outputs as the branch name.
    - **Labels:** Include `bmad-pipeline`, `epic_label`, and `bmad-dev-ready` on the PR.
-   - Do NOT create as a draft — the PR must be opened as ready-for-review so the `opened` event triggers the Dev Story workflow.
+   - Create the PR as a draft (this is the default -- do NOT set draft to false). A pipeline glue workflow will convert it to ready-for-review automatically.
 4. Post a comment on the triggering issue via `add-comment` summarizing that the story has been created, linking to the PR, and noting key details: story ID, story key, status (`ready-for-dev`), and what context was included.
 5. Remove the `bmad-story` label from the triggering issue using the `remove-labels` safe-output.
 
@@ -294,7 +293,7 @@ main
       └── story/N-M-feature   (story branch, PR targets epic)
 ```
 
-The `epic-branch` pre-step detects the epic branch and story key. This workflow creates a PR via `create-pull-request` targeting the epic branch. The PR `opened` event triggers the Dev Story agent directly.
+The `epic-branch` pre-step detects the epic branch and story key. This workflow creates a draft PR via `create-pull-request`. A pipeline glue workflow detects the `bmad-dev-ready` label, retargets the PR to the epic branch, and converts it to ready-for-review — which triggers the Dev Story agent.
 
 ## Checklist
 

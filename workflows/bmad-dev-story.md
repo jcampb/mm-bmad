@@ -4,8 +4,9 @@ source: jcampb/mm-bmad/workflows/bmad-dev-story@main
 
 on:
   pull_request:
-    types: [labeled]
-    names: [bmad-dev-ready, bmad-dev-active]
+    types: [ready_for_review]
+  pull_request_review:
+    types: [submitted]
 
 engine: claude
 timeout-minutes: 30
@@ -41,6 +42,11 @@ steps:
       if ! echo "$LABELS" | grep -q "bmad-pipeline"; then
         echo "skip=true" >> $GITHUB_OUTPUT
         echo "No bmad-pipeline label — skipping"
+        exit 0
+      fi
+      if echo "$LABELS" | grep -q "bmad-approved"; then
+        echo "skip=true" >> $GITHUB_OUTPUT
+        echo "PR already approved — skipping"
         exit 0
       fi
       echo "skip=false" >> $GITHUB_OUTPUT

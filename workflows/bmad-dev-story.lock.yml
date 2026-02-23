@@ -25,16 +25,16 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-dev-story@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"ac472598232496b2841643de86a949bc6f54fa3777b6cc02e5eafb0d9de3c538","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"854bf0f7dc8f519a4d4118c7890c5deb7052fc3d51e14fea84c08cef6c4258bd","compiler_version":"v0.49.2"}
 
 name: "BMAD Dev Story Agent"
 "on":
   pull_request:
-    # names: # Label filtering applied via job conditions
-    # - bmad-dev-ready # Label filtering applied via job conditions
-    # - bmad-dev-active # Label filtering applied via job conditions
     types:
-    - labeled
+    - ready_for_review
+  pull_request_review:
+    types:
+    - submitted
 
 permissions: {}
 
@@ -48,10 +48,8 @@ jobs:
   activation:
     needs: pre_activation
     if: >
-      (needs.pre_activation.outputs.activated == 'true') && (((!contains(github.event.*.labels.*.name, 'needs-human-intervention')) &&
-      ((github.event_name != 'pull_request') || (github.event.pull_request.head.repo.id == github.repository_id))) &&
-      ((github.event_name != 'pull_request') || ((github.event.action != 'labeled') || (github.event.label.name == 'bmad-dev-ready' ||
-      github.event.label.name == 'bmad-dev-active'))))
+      (needs.pre_activation.outputs.activated == 'true') && ((!contains(github.event.*.labels.*.name, 'needs-human-intervention')) &&
+      ((github.event_name != 'pull_request') || (github.event.pull_request.head.repo.id == github.repository_id)))
     runs-on: ubuntu-slim
     permissions:
       contents: read
@@ -113,6 +111,7 @@ jobs:
           GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
           GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
           GH_AW_GITHUB_WORKSPACE: ${{ github.workspace }}
+          GH_AW_IS_PR_COMMENT: ${{ github.event.issue.pull_request && 'true' || '' }}
         run: |
           bash /opt/gh-aw/actions/create_prompt_first.sh
           {
@@ -159,6 +158,9 @@ jobs:
           </github-context>
           
           GH_AW_PROMPT_EOF
+          if [ "$GITHUB_EVENT_NAME" = "issue_comment" ] && [ -n "$GH_AW_IS_PR_COMMENT" ] || [ "$GITHUB_EVENT_NAME" = "pull_request_review_comment" ] || [ "$GITHUB_EVENT_NAME" = "pull_request_review" ]; then
+            cat "/opt/gh-aw/prompts/pr_context_prompt.md"
+          fi
           cat << 'GH_AW_PROMPT_EOF'
           </system>
           GH_AW_PROMPT_EOF
@@ -188,6 +190,7 @@ jobs:
           GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
           GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
           GH_AW_GITHUB_WORKSPACE: ${{ github.workspace }}
+          GH_AW_IS_PR_COMMENT: ${{ github.event.issue.pull_request && 'true' || '' }}
           GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_ACTIVATED: ${{ needs.pre_activation.outputs.activated }}
         with:
           script: |
@@ -208,6 +211,7 @@ jobs:
                 GH_AW_GITHUB_REPOSITORY: process.env.GH_AW_GITHUB_REPOSITORY,
                 GH_AW_GITHUB_RUN_ID: process.env.GH_AW_GITHUB_RUN_ID,
                 GH_AW_GITHUB_WORKSPACE: process.env.GH_AW_GITHUB_WORKSPACE,
+                GH_AW_IS_PR_COMMENT: process.env.GH_AW_IS_PR_COMMENT,
                 GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_ACTIVATED: process.env.GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_ACTIVATED
               }
             });
@@ -280,6 +284,11 @@ jobs:
           if ! echo "$LABELS" | grep -q "bmad-pipeline"; then
             echo "skip=true" >> $GITHUB_OUTPUT
             echo "No bmad-pipeline label — skipping"
+            exit 0
+          fi
+          if echo "$LABELS" | grep -q "bmad-approved"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "PR already approved — skipping"
             exit 0
           fi
           echo "skip=false" >> $GITHUB_OUTPUT
@@ -1226,9 +1235,8 @@ jobs:
 
   pre_activation:
     if: >
-      ((!contains(github.event.*.labels.*.name, 'needs-human-intervention')) && ((github.event_name != 'pull_request') ||
-      (github.event.pull_request.head.repo.id == github.repository_id))) && ((github.event_name != 'pull_request') ||
-      ((github.event.action != 'labeled') || (github.event.label.name == 'bmad-dev-ready' || github.event.label.name == 'bmad-dev-active')))
+      (!contains(github.event.*.labels.*.name, 'needs-human-intervention')) && ((github.event_name != 'pull_request') ||
+      (github.event.pull_request.head.repo.id == github.repository_id))
     runs-on: ubuntu-slim
     outputs:
       activated: ${{ steps.check_membership.outputs.is_team_member == 'true' }}
