@@ -45,6 +45,7 @@ agent_definitions:                           # one or more owning agents
     identity: "Executes approved stories..."
     communication_style: "Ultra-succinct..."
     principles: "All existing and new tests..."
+    critical_actions: [...]                   # behavioral rules from activation steps
     capabilities: "story execution, TDD, code implementation"
 
 workflow_sources:                            # paths to BMAD source files
@@ -76,6 +77,8 @@ tools:
   github:
     toolsets: [{toolsets}]
 
+if: "!contains(github.event.*.labels.*.name, 'needs-human-intervention')"
+
 steps:
   - name: Read project config
     id: config
@@ -98,7 +101,7 @@ safe-outputs:
 {from agent_definitions[*].principles}
 
 ## Critical Rules
-{extracted from agent activation steps that are behavioral rules, NOT menu/UI steps}
+{from agent_definitions[*].critical_actions — every item must appear}
 
 ## Instructions
 {translated from workflow_sources.instructions}
@@ -237,7 +240,9 @@ These patterns exist for IDE-based agents and must NOT appear in gh-aw workflows
 | "Update frontmatter stepsCompleted" | Not needed — gh-aw workflows are single-pass |
 | "Run tests" | Instruct agent to use code tools to run tests |
 | "Commit changes" | Instruct agent to use push-to-pr safe-output |
-| Sequential pipeline references | Remove — each workflow is independent, GitHub events connect them |
+| Sequential pipeline (A then B) | Human-gated: this workflow creates a PR with its artifact. The human reviews, merges, and adds the next label. Do not reference the next workflow. |
+| Autonomous loop (dev ↔ review) | Event-driven: push triggers review, changes_requested triggers dev. Each workflow is self-contained — GitHub events provide the coupling. |
+| `agent.metadata.capabilities` | Already reflected in the `toolsets` input provided by orchestrator. Use capabilities text to inform the Focus field in multi-perspective workflows. |
 
 ## Guardrails Section (Always Include)
 
@@ -251,7 +256,12 @@ When you cannot proceed due to missing information, ambiguity, or a blocking iss
 3. Stop all work immediately — do not guess or assume
 
 ### Scope Constraints
-{workflow-specific scope — what files/areas this agent may modify}
+{Derive from the workflow's purpose and agent capabilities:
+  - Planning workflows: scope to docs/ and planning artifacts only
+  - Dev-story: scope to source code and test files related to the story
+  - Code-review: read-only scope, output is review comments only
+  - QA workflows: scope to test files only
+  - If scope cannot be determined, state "Scope defined by the task context"}
 - Do NOT modify files outside your designated scope
 - Do NOT reference or invoke other workflows by name
 - All write operations go through safe-outputs only — never commit or push directly
