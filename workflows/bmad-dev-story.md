@@ -4,9 +4,8 @@ source: jcampb/mm-bmad/workflows/bmad-dev-story@main
 
 on:
   pull_request:
-    types: [opened, ready_for_review]
-  pull_request_review:
-    types: [submitted]
+    types: [labeled]
+    names: [bmad-dev-ready, bmad-dev-active]
 
 engine: claude
 timeout-minutes: 30
@@ -65,6 +64,7 @@ safe-outputs:
   push-to-pull-request-branch:
   add-comment:
   add-labels:
+  remove-labels:
 ---
 
 # BMAD Dev Story Agent
@@ -251,7 +251,8 @@ Never mark a task complete unless ALL conditions are met.
 2. Prepare a concise summary in Dev Agent Record > Completion Notes.
 3. Post a comment via `add-comment` summarizing that story implementation is complete and ready for review. Include: story ID, story key, title, key changes made, tests added, files modified, story file path, and current status (`review`).
 4. Push all final story file updates via `push-to-pull-request-branch`.
-5. Add the `bmad-review-pending` label to the PR via `add-labels` to signal that code review is expected.
+5. Remove the `bmad-dev-ready` and `bmad-dev-active` labels from the PR via `remove-labels` (one or both may be present).
+6. Add the `bmad-review-pending` label to the PR via `add-labels` to signal that code review is expected.
 
 ## Branching Context
 

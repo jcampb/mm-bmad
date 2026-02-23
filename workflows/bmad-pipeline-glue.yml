@@ -1,0 +1,48 @@
+# BMAD Pipeline Glue — fixes PR base branch to target the epic branch.
+# This is a plain GitHub Actions workflow (NOT gh-aw). Copy to .github/workflows/.
+name: BMAD Pipeline Glue
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  fix-base-branch:
+    if: contains(github.event.pull_request.labels.*.name, 'bmad-pipeline')
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Retarget PR to epic branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Find epic-N label on the PR
+          EPIC_LABEL=$(gh pr view "$PR_NUMBER" --repo "$REPO" \
+            --json labels --jq '[.labels[].name | select(startswith("epic-"))] | first // empty')
+          if [ -z "$EPIC_LABEL" ]; then
+            echo "No epic-N label found — skipping base branch fix"
+            exit 0
+          fi
+          EPIC_NUM="${EPIC_LABEL#epic-}"
+
+          # Find the matching epic branch
+          EPIC_BRANCH=$(gh api "repos/${REPO}/branches" --jq \
+            "[.[].name | select(startswith(\"epic-${EPIC_NUM}-\"))] | first // empty")
+          if [ -z "$EPIC_BRANCH" ]; then
+            echo "No epic-${EPIC_NUM}-* branch found — skipping"
+            exit 0
+          fi
+
+          # Check current base
+          CURRENT_BASE=$(gh pr view "$PR_NUMBER" --repo "$REPO" \
+            --json baseRefName --jq '.baseRefName')
+          if [ "$CURRENT_BASE" = "$EPIC_BRANCH" ]; then
+            echo "Base branch already correct: $EPIC_BRANCH"
+            exit 0
+          fi
+
+          echo "Retargeting PR #${PR_NUMBER}: ${CURRENT_BASE} → ${EPIC_BRANCH}"
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --base "$EPIC_BRANCH"
