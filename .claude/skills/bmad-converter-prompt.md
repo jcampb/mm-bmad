@@ -173,6 +173,7 @@ After evaluating through all perspectives:
   - name: Count review cycles
     id: guard
     env:
+      GH_TOKEN: ${{ github.token }}
       PR: ${{ github.event.pull_request.number }}
     run: |
       CYCLES=$(gh pr view "$PR" --json reviews \
@@ -205,6 +206,7 @@ After evaluating through all perspectives:
   - name: Detect epic branch and create story PR
     id: epic-branch
     env:
+      GH_TOKEN: ${{ github.token }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
       REPO: ${{ github.repository }}
     run: |
@@ -266,6 +268,7 @@ After evaluating through all perspectives:
   - name: Check pipeline label
     id: pipeline-check
     env:
+      GH_TOKEN: ${{ github.token }}
       PR: ${{ github.event.pull_request.number }}
     run: |
       LABELS=$(gh pr view "$PR" --json labels --jq '.labels[].name')
@@ -282,6 +285,7 @@ After evaluating through all perspectives:
   - name: Skip if no source code changes
     id: source-check
     env:
+      GH_TOKEN: ${{ github.token }}
       PR: ${{ github.event.pull_request.number }}
     run: |
       SOURCE_FILES=$(gh pr diff "$PR" --name-only \

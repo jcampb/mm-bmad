@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-create-story@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"f0fd95e489679e40ffbc9b69edd7556cd705b4f0ffa425ea546eedf4375c38cf","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"696557e97fcc05657ced92defc588d40e3831003892dce2b665456ca554333ea","compiler_version":"v0.49.2"}
 
 name: "BMAD Create Story Agent"
 "on":
@@ -267,6 +267,7 @@ jobs:
             echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
       - env:
+          GH_TOKEN: ${{ github.token }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           REPO: ${{ github.repository }}
         id: epic-branch

@@ -45,6 +45,7 @@ steps:
   - name: Skip if no source code changes
     id: source-check
     env:
+      GH_TOKEN: ${{ github.token }}
       PR: ${{ github.event.pull_request.number }}
     run: |
       SOURCE_FILES=$(gh pr diff "$PR" --name-only \

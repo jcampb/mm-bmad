@@ -35,6 +35,7 @@ steps:
   - name: Check pipeline label
     id: pipeline-check
     env:
+      GH_TOKEN: ${{ github.token }}
       PR: ${{ github.event.pull_request.number }}
     run: |
       LABELS=$(gh pr view "$PR" --json labels --jq '.labels[].name')
@@ -48,6 +49,7 @@ steps:
   - name: Count review cycles
     id: guard
     env:
+      GH_TOKEN: ${{ github.token }}
       PR: ${{ github.event.pull_request.number }}
     run: |
       CYCLES=$(gh pr view "$PR" --json reviews \

@@ -34,6 +34,7 @@ steps:
   - name: Detect epic branch and create story PR
     id: epic-branch
     env:
+      GH_TOKEN: ${{ github.token }}
       ISSUE_NUMBER: ${{ github.event.issue.number }}
       REPO: ${{ github.repository }}
     run: |

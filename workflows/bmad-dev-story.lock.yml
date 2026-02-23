@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-dev-story@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"10b19440d66962586981011de07c6e41d01313114359d344aa1dff7b65c31e13","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"5bc99dbd56945518126f8b8048e448d688cbf9a8f81b82dbf25ba7c5c0293046","compiler_version":"v0.49.2"}
 
 name: "BMAD Dev Story Agent"
 "on":
@@ -275,6 +275,7 @@ jobs:
             echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
       - env:
+          GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
         id: pipeline-check
         name: Check pipeline label
@@ -287,6 +288,7 @@ jobs:
           fi
           echo "skip=false" >> $GITHUB_OUTPUT
       - env:
+          GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
         id: guard
         name: Count review cycles
