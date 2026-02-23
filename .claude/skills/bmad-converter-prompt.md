@@ -68,7 +68,7 @@ Produce exactly this structure. Every section is required.
 ```markdown
 ---
 description: "BMAD {workflow_title} ({Agent Name}) — {purpose}"
-source: jcampb/mm-bmad/workflows/{output_filename}@main
+source: jcampb/mm-bmad/workflows/{workflow_name without extension}@main
 
 on:
   {trigger.config}
