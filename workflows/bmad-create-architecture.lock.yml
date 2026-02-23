@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-create-architecture@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"fabb9b15365042b2e490c39f7004dca42d396db8ff4da817aaa836e14a9432ca","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"75d577b6adf8bf516bf439bd3f81e63dae83cebe7e76a6394882db053b75c316","compiler_version":"v0.49.2"}
 
 name: "BMAD Create Architecture Agent"
 "on":
@@ -262,7 +262,9 @@ jobs:
         name: Read project config
         run: |-
           if [ -f .bmad/config.yaml ]; then
+            echo "config<<BMAD_EOF" >> $GITHUB_OUTPUT
             cat .bmad/config.yaml >> $GITHUB_OUTPUT
+            echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure Git credentials

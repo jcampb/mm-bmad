@@ -162,7 +162,9 @@ After evaluating through all perspectives:
     id: config
     run: |
       if [ -f .bmad/config.yaml ]; then
+        echo "config<<BMAD_EOF" >> $GITHUB_OUTPUT
         cat .bmad/config.yaml >> $GITHUB_OUTPUT
+        echo "BMAD_EOF" >> $GITHUB_OUTPUT
       fi
 ```
 

@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-check-readiness@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"054a2e36b54caa80eca6bbb14481bb737aa3b7eb332f1c9dbda384b5485e61e0","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"8961891a20f1f1aa7929247fe2dac2a70c6431611805f4155f341b335712523c","compiler_version":"v0.49.2"}
 
 name: "BMAD Check Implementation Readiness Agent"
 "on":
@@ -262,7 +262,9 @@ jobs:
         name: Read project config
         run: |-
           if [ -f .bmad/config.yaml ]; then
+            echo "config<<BMAD_EOF" >> $GITHUB_OUTPUT
             cat .bmad/config.yaml >> $GITHUB_OUTPUT
+            echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure Git credentials

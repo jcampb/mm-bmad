@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-create-prd@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"d0eb557742d797f17ec279e4924f4769a881c6e348a154e13d394d604255952d","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"e3a1c5557d6ac1ad189c80999b7c2a0b33126751bef4173274d223a45a51db07","compiler_version":"v0.49.2"}
 
 name: "BMAD Create PRD Agent"
 "on":
@@ -262,7 +262,9 @@ jobs:
         name: Read project config
         run: |-
           if [ -f .bmad/config.yaml ]; then
+            echo "config<<BMAD_EOF" >> $GITHUB_OUTPUT
             cat .bmad/config.yaml >> $GITHUB_OUTPUT
+            echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure Git credentials

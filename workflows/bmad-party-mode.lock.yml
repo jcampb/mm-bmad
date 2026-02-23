@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-party-mode@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"ecd41526fbab0e6dd75639036f19072ec8ec06ada77db2bb94bd7fa675f4990b","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"e82de92d6d108b58c96317673c2ad71f8506d12b0ece56f75636bf8260b138c9","compiler_version":"v0.49.2"}
 
 name: "BMAD Party Mode Agent"
 "on":
@@ -259,7 +259,9 @@ jobs:
         name: Read project config
         run: |-
           if [ -f .bmad/config.yaml ]; then
+            echo "config<<BMAD_EOF" >> $GITHUB_OUTPUT
             cat .bmad/config.yaml >> $GITHUB_OUTPUT
+            echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure Git credentials

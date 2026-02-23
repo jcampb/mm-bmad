@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-sprint-planning@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"0cebb1528fd8bfd5c1bda4bda510bf9a31f6a44fb42f71e1bd21a605a603c889","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"a69b935e39f949f53fafab91327f06e594724f531c97c1f66c46139ba5993924","compiler_version":"v0.49.2"}
 
 name: "BMAD Sprint Planning Agent"
 "on":
@@ -259,7 +259,9 @@ jobs:
         name: Read project config
         run: |-
           if [ -f .bmad/config.yaml ]; then
+            echo "config<<BMAD_EOF" >> $GITHUB_OUTPUT
             cat .bmad/config.yaml >> $GITHUB_OUTPUT
+            echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure Git credentials

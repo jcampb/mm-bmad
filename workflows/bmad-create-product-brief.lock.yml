@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-create-product-brief@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"bc53481ca60f5946e5859a9cb22f2ff9a26efae3ae040626ae904ad9dd6833f7","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"0675dfa96077867e6d3d58846a59a96145f994f1d45912aed1174d61331aa467","compiler_version":"v0.49.2"}
 
 name: "BMAD Create Product Brief Agent"
 "on":
@@ -262,7 +262,9 @@ jobs:
         name: Read project config
         run: |-
           if [ -f .bmad/config.yaml ]; then
+            echo "config<<BMAD_EOF" >> $GITHUB_OUTPUT
             cat .bmad/config.yaml >> $GITHUB_OUTPUT
+            echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure Git credentials

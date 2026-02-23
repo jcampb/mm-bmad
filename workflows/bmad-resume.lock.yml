@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-resume@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"45a142fdfdaaf28b7afb6f49c50c1b474f8288550c27a3257a9f9cc7f0e47204","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"e3a9e0078e3e3d45b7e45cd232bf7611e5a3e8d49339f573002a0201af208ad4","compiler_version":"v0.49.2"}
 
 name: "BMAD Resume Agent"
 "on":
@@ -265,7 +265,9 @@ jobs:
         name: Read project config
         run: |
           if [ -f .bmad/config.yaml ]; then
+            echo "config<<BMAD_EOF" >> $GITHUB_OUTPUT
             cat .bmad/config.yaml >> $GITHUB_OUTPUT
+            echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
       - env:
           EVENT_ACTION: ${{ github.event.action }}

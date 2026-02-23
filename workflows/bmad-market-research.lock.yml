@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-market-research@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"199e495e33f4872bb0a4c3090011f08039565e6447c310b20b7b0d88826434c6","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"5b08e450d244feda1092ff5495e9c4f948fe611101174e70cd8f942b0848561b","compiler_version":"v0.49.2"}
 
 name: "BMAD Market Research Agent"
 "on":
@@ -262,7 +262,9 @@ jobs:
         name: Read project config
         run: |-
           if [ -f .bmad/config.yaml ]; then
+            echo "config<<BMAD_EOF" >> $GITHUB_OUTPUT
             cat .bmad/config.yaml >> $GITHUB_OUTPUT
+            echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure Git credentials

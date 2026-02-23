@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-create-ux-design@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"c23b8f4ebb07221445f80408ba52eb7b03c9abec0f8842b43539d70376a6acf2","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"b4d408a7e1b0d38418c10de95adc33751aaa20831a4a438097a9fb3b55265626","compiler_version":"v0.49.2"}
 
 name: "BMAD Create UX Design Agent"
 "on":
@@ -262,7 +262,9 @@ jobs:
         name: Read project config
         run: |-
           if [ -f .bmad/config.yaml ]; then
+            echo "config<<BMAD_EOF" >> $GITHUB_OUTPUT
             cat .bmad/config.yaml >> $GITHUB_OUTPUT
+            echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure Git credentials

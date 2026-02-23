@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-dev-story@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"e64c530cdaca81660eb940d3bcac5a401252095bf9d0c7abc1aa26d2d627382f","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"88a03e3b44e9b6125be5fdd79d066062053b46731eeecf8b080668b7fe3f385d","compiler_version":"v0.49.2"}
 
 name: "BMAD Dev Story Agent"
 "on":
@@ -270,7 +270,9 @@ jobs:
         name: Read project config
         run: |
           if [ -f .bmad/config.yaml ]; then
+            echo "config<<BMAD_EOF" >> $GITHUB_OUTPUT
             cat .bmad/config.yaml >> $GITHUB_OUTPUT
+            echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
       - env:
           PR: ${{ github.event.pull_request.number }}

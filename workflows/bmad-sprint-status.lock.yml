@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-sprint-status@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"7aa695ef593694d7fe42f4c3c705af1ab9bbad09a927db225c02284bbd769327","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"5f0bf28a971882d2bde692e3287a3b043de72ef48d6916298987a18eff1f60ff","compiler_version":"v0.49.2"}
 
 name: "BMAD Sprint Status Agent"
 "on":
@@ -259,7 +259,9 @@ jobs:
         name: Read project config
         run: |-
           if [ -f .bmad/config.yaml ]; then
+            echo "config<<BMAD_EOF" >> $GITHUB_OUTPUT
             cat .bmad/config.yaml >> $GITHUB_OUTPUT
+            echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure Git credentials

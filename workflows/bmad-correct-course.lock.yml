@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-correct-course@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"d4ad1ecdcb52eefaf558b92becd78cc7f60e63f84fc7480289f54b12338481d6","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"c11a078cd8b7f1ed93ae679c2f7aaec07a5db8a54d8f559e01ad2f9c77567133","compiler_version":"v0.49.2"}
 
 name: "BMAD Correct Course Agent"
 "on":
@@ -262,7 +262,9 @@ jobs:
         name: Read project config
         run: |-
           if [ -f .bmad/config.yaml ]; then
+            echo "config<<BMAD_EOF" >> $GITHUB_OUTPUT
             cat .bmad/config.yaml >> $GITHUB_OUTPUT
+            echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure Git credentials

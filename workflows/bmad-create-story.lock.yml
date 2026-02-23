@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-create-story@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"2c1c2d8303eef851c90d02a387aceb0d904cd5ed78ad99465302247df3fa71d1","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"799209fa39008f60366a94a3b49ba1686bee36cc35b9c430fbe241a34df3decc","compiler_version":"v0.49.2"}
 
 name: "BMAD Create Story Agent"
 "on":
@@ -262,7 +262,9 @@ jobs:
         name: Read project config
         run: |-
           if [ -f .bmad/config.yaml ]; then
+            echo "config<<BMAD_EOF" >> $GITHUB_OUTPUT
             cat .bmad/config.yaml >> $GITHUB_OUTPUT
+            echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
 
       - name: Configure Git credentials
