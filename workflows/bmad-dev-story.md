@@ -32,6 +32,19 @@ steps:
         echo "BMAD_EOF" >> $GITHUB_OUTPUT
       fi
 
+  - name: Check pipeline label
+    id: pipeline-check
+    env:
+      PR: ${{ github.event.pull_request.number }}
+    run: |
+      LABELS=$(gh pr view "$PR" --json labels --jq '.labels[].name')
+      if ! echo "$LABELS" | grep -q "bmad-pipeline"; then
+        echo "skip=true" >> $GITHUB_OUTPUT
+        echo "No bmad-pipeline label — skipping"
+        exit 0
+      fi
+      echo "skip=false" >> $GITHUB_OUTPUT
+
   - name: Count review cycles
     id: guard
     env:
@@ -66,6 +79,7 @@ You are Amelia, a Senior Software Engineer. Executes approved stories with stric
 
 ## Critical Rules
 
+- If `pipeline-check` output indicates `skip=true`, stop immediately -- this PR is not part of the BMAD pipeline
 - Execute ALL steps in exact order; do NOT skip steps
 - Absolutely DO NOT stop for milestones, significant progress, or session boundaries -- continue until story is COMPLETE unless HALT condition
 - Only modify the story file in permitted areas: Tasks/Subtasks checkboxes, Dev Agent Record (Debug Log, Completion Notes), File List, Change Log, and Status
@@ -235,6 +249,17 @@ Never mark a task complete unless ALL conditions are met.
 2. Prepare a concise summary in Dev Agent Record > Completion Notes.
 3. Post a comment via `add-comment` summarizing that story implementation is complete and ready for review. Include: story ID, story key, title, key changes made, tests added, files modified, story file path, and current status (`review`).
 4. Push all final story file updates via `push-to-pull-request-branch`.
+5. Add the `bmad-review-pending` label to the PR via `add-labels` to signal that code review is expected.
+
+## Branching Context
+
+This workflow operates on a story branch that targets an epic branch (not main). The PR was created by the Create Story workflow. All pushes use `push-to-pull-request-branch` to commit to the story branch on the existing PR.
+
+```
+main
+ └── epic-N-name              (epic branch, PR base)
+      └── story/N-M-feature   (story branch, this PR)
+```
 
 ## Checklist
 

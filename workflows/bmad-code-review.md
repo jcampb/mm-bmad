@@ -42,9 +42,25 @@ steps:
       fi
       echo "skip=false" >> $GITHUB_OUTPUT
 
+  - name: Skip if no source code changes
+    id: source-check
+    env:
+      PR: ${{ github.event.pull_request.number }}
+    run: |
+      SOURCE_FILES=$(gh pr diff "$PR" --name-only \
+        | grep -vE '\.(md|yaml|yml)$' | grep -vE '^docs/' | head -1)
+      if [ -z "$SOURCE_FILES" ]; then
+        echo "skip=true" >> $GITHUB_OUTPUT
+        echo "No source code changes — skipping review"
+        exit 0
+      fi
+      echo "skip=false" >> $GITHUB_OUTPUT
+
 safe-outputs:
   submit-pull-request-review:
   add-comment:
+  add-labels:
+  remove-labels:
 ---
 
 # BMAD Code Review Agent
@@ -70,6 +86,7 @@ You are Amelia, a Senior Software Engineer. Executes approved stories with stric
 - Acceptance Criteria not implemented = HIGH severity finding
 - Do not review _bmad/, _bmad-output/, .cursor/, .windsurf/, .claude/ folders
 - If skip-check output indicates `skip=true`, stop immediately -- do not perform any review
+- If source-check output indicates `skip=true`, stop immediately -- no source code to review
 
 ## Instructions
 
@@ -167,8 +184,8 @@ Validate every claim. Check PR diff reality vs story claims.
    - For each finding: specific action items describing what must be fixed and where.
 
 3. Determine the review decision:
-   - If there are ZERO CRITICAL and ZERO HIGH findings: submit a PR review via `submit-pull-request-review` with **approve** status. Include all MEDIUM and LOW findings as suggestions.
-   - If there are ANY CRITICAL or HIGH findings: submit a PR review via `submit-pull-request-review` with **request_changes** status. List every CRITICAL and HIGH finding as a required action item with the specific file, location, and what must be corrected.
+   - If there are ZERO CRITICAL and ZERO HIGH findings: submit a PR review via `submit-pull-request-review` with **approve** status. Include all MEDIUM and LOW findings as suggestions. Then add the `bmad-approved` label and remove the `bmad-review-pending` label via `add-labels` and `remove-labels`.
+   - If there are ANY CRITICAL or HIGH findings: submit a PR review via `submit-pull-request-review` with **request_changes** status. List every CRITICAL and HIGH finding as a required action item with the specific file, location, and what must be corrected. Then add the `bmad-dev-active` label and remove the `bmad-review-pending` label via `add-labels` and `remove-labels`.
 
 ### Step 5: Post summary comment
 
@@ -211,7 +228,7 @@ When you cannot proceed due to missing information, ambiguity, or a blocking iss
 - This workflow is READ-ONLY -- output is review comments only
 - Do NOT modify any source code, test files, story files, or any other files
 - Do NOT reference or invoke other workflows by name
-- All output goes through safe-outputs only (submit-pull-request-review and add-comment)
+- All output goes through safe-outputs only (submit-pull-request-review, add-comment, add-labels, remove-labels)
 - If you need something outside your scope, use the blocker protocol
 
 ### Circuit Breaker

@@ -200,6 +200,100 @@ After evaluating through all perspectives:
       echo "skip=false" >> $GITHUB_OUTPUT
 ```
 
+**detect-epic-branch** (for create-story — creates story branch and draft PR from epic label):
+```yaml
+  - name: Detect epic branch and create story PR
+    id: epic-branch
+    env:
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      REPO: ${{ github.repository }}
+    run: |
+      # Find epic-N label on issue
+      EPIC_LABEL=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" \
+        --json labels --jq '[.labels[].name | select(startswith("epic-"))] | first // empty')
+      if [ -z "$EPIC_LABEL" ]; then
+        echo "error=no-epic-label" >> $GITHUB_OUTPUT
+        exit 0
+      fi
+      EPIC_NUM=$(echo "$EPIC_LABEL" | sed 's/epic-//')
+
+      # Map epic label to branch
+      EPIC_BRANCH=$(git branch -r --list "origin/epic-${EPIC_NUM}-*" | head -1 \
+        | sed 's|origin/||' | xargs)
+      if [ -z "$EPIC_BRANCH" ]; then
+        echo "error=no-epic-branch" >> $GITHUB_OUTPUT
+        exit 0
+      fi
+
+      # Extract story key from issue title
+      ISSUE_TITLE=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" \
+        --json title --jq '.title')
+      STORY_KEY=$(echo "$ISSUE_TITLE" \
+        | grep -oiE '[0-9]+-[0-9]+(-[a-z0-9-]+)?' | head -1 \
+        | tr '[:upper:]' '[:lower:]')
+      if [ -z "$STORY_KEY" ]; then
+        STORY_KEY=$(echo "$ISSUE_TITLE" \
+          | grep -oE '[0-9]+\.[0-9]+' | head -1 | tr '.' '-')
+      fi
+      if [ -z "$STORY_KEY" ]; then
+        echo "error=no-story-key" >> $GITHUB_OUTPUT
+        exit 0
+      fi
+
+      # Create story branch from epic
+      STORY_BRANCH="story/${STORY_KEY}"
+      git fetch origin "$EPIC_BRANCH"
+      git checkout -b "$STORY_BRANCH" "origin/${EPIC_BRANCH}" 2>/dev/null \
+        || git checkout "$STORY_BRANCH"
+      git push -u origin "$STORY_BRANCH"
+
+      # Create draft PR targeting epic branch
+      PR_URL=$(gh pr create --repo "$REPO" \
+        --base "$EPIC_BRANCH" --head "$STORY_BRANCH" \
+        --title "story: ${STORY_KEY}" \
+        --body "Story creation in progress for #${ISSUE_NUMBER}" \
+        --draft --label "bmad-pipeline" --label "$EPIC_LABEL")
+      PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+
+      echo "epic_branch=$EPIC_BRANCH" >> $GITHUB_OUTPUT
+      echo "story_branch=$STORY_BRANCH" >> $GITHUB_OUTPUT
+      echo "story_key=$STORY_KEY" >> $GITHUB_OUTPUT
+      echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+```
+
+**pipeline-check** (for dev-story — skip non-pipeline PRs):
+```yaml
+  - name: Check pipeline label
+    id: pipeline-check
+    env:
+      PR: ${{ github.event.pull_request.number }}
+    run: |
+      LABELS=$(gh pr view "$PR" --json labels --jq '.labels[].name')
+      if ! echo "$LABELS" | grep -q "bmad-pipeline"; then
+        echo "skip=true" >> $GITHUB_OUTPUT
+        echo "No bmad-pipeline label — skipping"
+        exit 0
+      fi
+      echo "skip=false" >> $GITHUB_OUTPUT
+```
+
+**source-check** (for code-review — skip when only docs/config changed):
+```yaml
+  - name: Skip if no source code changes
+    id: source-check
+    env:
+      PR: ${{ github.event.pull_request.number }}
+    run: |
+      SOURCE_FILES=$(gh pr diff "$PR" --name-only \
+        | grep -vE '\.(md|yaml|yml)$' | grep -vE '^docs/' | head -1)
+      if [ -z "$SOURCE_FILES" ]; then
+        echo "skip=true" >> $GITHUB_OUTPUT
+        echo "No source code changes — skipping review"
+        exit 0
+      fi
+      echo "skip=false" >> $GITHUB_OUTPUT
+```
+
 ## Translation Rules
 
 ### From Instructions (XML or Markdown)

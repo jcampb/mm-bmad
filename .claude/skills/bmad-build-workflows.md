@@ -81,9 +81,9 @@ Use the frontmatter decision tree to classify each workflow:
 
 | Workflow | Trigger | Safe-Outputs | Pre-Steps |
 |---|---|---|---|
-| `create-story` | `issues: types: [labeled]`, label: `bmad-story` | `create-pull-request`, `remove-labels` | `config-loader` |
-| `dev-story` | `pull_request: types: [ready_for_review]` + `pull_request_review: types: [submitted]` | `push-to-pull-request-branch`, `add-comment`, `add-labels` | `config-loader`, `cycle-counter` |
-| `code-review` | `pull_request: types: [synchronize]` | `submit-pull-request-review`, `add-comment` | `config-loader`, `skip-if-human-push` |
+| `create-story` | `issues: types: [labeled]`, label: `bmad-story` | `push-to-pull-request-branch`, `remove-labels`, `add-labels`, `add-comment` | `config-loader`, `detect-epic-branch` |
+| `dev-story` | `pull_request: types: [ready_for_review]` + `pull_request_review: types: [submitted]` | `push-to-pull-request-branch`, `add-comment`, `add-labels` | `config-loader`, `pipeline-check`, `cycle-counter` |
+| `code-review` | `pull_request: types: [synchronize]` | `submit-pull-request-review`, `add-comment`, `add-labels`, `remove-labels` | `config-loader`, `skip-if-human-push`, `source-check` |
 | `correct-course` | `issues: types: [labeled]`, label: `bmad-correct-course` | `create-pull-request`, `add-comment`, `add-labels` | `config-loader` |
 | `retrospective` | `issues: types: [labeled]`, label: `bmad-retrospective` | `add-comment` | `config-loader` |
 | `sprint-planning` | `issues: types: [labeled]`, label: `bmad-sprint-planning` | `add-comment` | `config-loader` |
@@ -230,6 +230,30 @@ After ALL workflows are generated, validate across the full set:
 | No duplicate triggers | Two workflows don't trigger on the same label |
 | Guardrail consistency | Blocker protocol wording is identical across all workflows |
 | Label vocabulary closed | Every label in `add-labels`/`remove-labels` is a known trigger or state label |
+
+## Pipeline Label State Machine
+
+The implementation workflows use labels on the PR to track pipeline state:
+
+```
+bmad-pipeline     (permanent — marks PR as BMAD-managed)
+bmad-dev-ready    → Create Story done, triggers glue → Dev Story
+bmad-dev-active   → Dev Story is working
+bmad-review-pending → Dev Story done, Code Review incoming
+bmad-approved     → Code Review passed, human can merge
+needs-human-intervention → circuit breaker, halts everything
+```
+
+### Pipeline Glue Workflow
+
+The file `workflows/bmad-pipeline-glue.yml` is a plain GitHub Actions workflow (NOT a gh-aw workflow). It handles the draft→ready conversion that no safe-output can do:
+
+- Triggers on `pull_request: labeled` with label `bmad-dev-ready`
+- Converts the draft PR to ready-for-review (`gh pr ready`)
+- Transitions labels: removes `bmad-dev-ready`, adds `bmad-dev-active`
+- The `ready_for_review` event then triggers Dev Story
+
+Target repos must copy this file to `.github/workflows/bmad-pipeline-glue.yml` alongside the compiled gh-aw workflows.
 
 ## Step 7: Write and Commit
 

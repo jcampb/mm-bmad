@@ -1,0 +1,20 @@
+name: BMAD Pipeline Glue
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  story-to-dev:
+    if: github.event.label.name == 'bmad-dev-ready'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Convert draft to ready and transition labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr ready "$PR_NUMBER"
+          gh pr edit "$PR_NUMBER" --remove-label "bmad-dev-ready"
+          gh pr edit "$PR_NUMBER" --add-label "bmad-dev-active"

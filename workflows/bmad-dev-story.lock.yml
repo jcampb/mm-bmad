@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-dev-story@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"88a03e3b44e9b6125be5fdd79d066062053b46731eeecf8b080668b7fe3f385d","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"10b19440d66962586981011de07c6e41d01313114359d344aa1dff7b65c31e13","compiler_version":"v0.49.2"}
 
 name: "BMAD Dev Story Agent"
 "on":
@@ -274,6 +274,18 @@ jobs:
             cat .bmad/config.yaml >> $GITHUB_OUTPUT
             echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
+      - env:
+          PR: ${{ github.event.pull_request.number }}
+        id: pipeline-check
+        name: Check pipeline label
+        run: |
+          LABELS=$(gh pr view "$PR" --json labels --jq '.labels[].name')
+          if ! echo "$LABELS" | grep -q "bmad-pipeline"; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "No bmad-pipeline label — skipping"
+            exit 0
+          fi
+          echo "skip=false" >> $GITHUB_OUTPUT
       - env:
           PR: ${{ github.event.pull_request.number }}
         id: guard
