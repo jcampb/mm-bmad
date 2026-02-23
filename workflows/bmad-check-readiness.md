@@ -309,7 +309,7 @@ When you cannot proceed due to missing information, ambiguity, or a blocking iss
 - Do NOT modify any existing planning documents
 - Do NOT create or modify source code, test files, or configuration files
 - Do NOT reference or invoke other workflows by name
-- All write operations go through safe-outputs only — never commit or push directly
+- All write operations go through safe-outputs only -- never commit or push directly
 - If you need something outside your scope, use the blocker protocol
 
 ### Circuit Breaker
