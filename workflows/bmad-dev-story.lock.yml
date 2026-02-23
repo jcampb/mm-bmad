@@ -25,12 +25,13 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-dev-story@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"5bc99dbd56945518126f8b8048e448d688cbf9a8f81b82dbf25ba7c5c0293046","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"ab151119f8225f425b041c96bae2d5a3e93c0e11fcf5b912115bfd2a337828cc","compiler_version":"v0.49.2"}
 
 name: "BMAD Dev Story Agent"
 "on":
   pull_request:
     types:
+    - opened
     - ready_for_review
   pull_request_review:
     types:

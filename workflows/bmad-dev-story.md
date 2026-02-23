@@ -4,7 +4,7 @@ source: jcampb/mm-bmad/workflows/bmad-dev-story@main
 
 on:
   pull_request:
-    types: [ready_for_review]
+    types: [opened, ready_for_review]
   pull_request_review:
     types: [submitted]
 

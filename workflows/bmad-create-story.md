@@ -279,11 +279,10 @@ Compose the story file with these sections:
    - PR body: Story creation for issue #[issue_number]. Include the story ID, story key, epic number, story number, story title, and a summary of the context included.
    - **Base branch:** Set the base branch to `epic_branch` from the pre-step outputs (NOT main).
    - **Head branch:** Use `story_branch` from the pre-step outputs as the branch name.
-   - **Labels:** Include `bmad-pipeline` and `epic_label` on the PR (NOT `bmad-dev-ready` yet).
-   - **Draft:** Create as a draft PR.
-4. AFTER the PR is created, add the `bmad-dev-ready` label to it via the `add-labels` safe-output. This MUST be a separate step from PR creation so that the `labeled` event fires and triggers the pipeline glue workflow.
-5. Post a comment on the triggering issue via `add-comment` summarizing that the story has been created, linking to the PR, and noting key details: story ID, story key, status (`ready-for-dev`), and what context was included.
-6. Remove the `bmad-story` label from the triggering issue using the `remove-labels` safe-output.
+   - **Labels:** Include `bmad-pipeline`, `epic_label`, and `bmad-dev-ready` on the PR.
+   - Do NOT create as a draft — the PR must be opened as ready-for-review so the `opened` event triggers the Dev Story workflow.
+4. Post a comment on the triggering issue via `add-comment` summarizing that the story has been created, linking to the PR, and noting key details: story ID, story key, status (`ready-for-dev`), and what context was included.
+5. Remove the `bmad-story` label from the triggering issue using the `remove-labels` safe-output.
 
 ## Branching Context
 
@@ -295,7 +294,7 @@ main
       └── story/N-M-feature   (story branch, PR targets epic)
 ```
 
-The `epic-branch` pre-step detects the epic branch and story key. This workflow creates a draft PR via `create-pull-request` targeting the epic branch with the `bmad-dev-ready` label. The pipeline glue then converts the draft to ready-for-review, triggering the Dev Story agent on the same PR.
+The `epic-branch` pre-step detects the epic branch and story key. This workflow creates a PR via `create-pull-request` targeting the epic branch. The PR `opened` event triggers the Dev Story agent directly.
 
 ## Checklist
 
