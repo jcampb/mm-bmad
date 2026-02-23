@@ -5,19 +5,19 @@ source: jcampb/mm-bmad/workflows/bmad-correct-course@main
 on:
   issues:
     types: [labeled]
-  label: bmad-correct-course
+    names: [bmad-correct-course]
 
 engine: claude
 timeout-minutes: 30
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
+  pull-requests: read
+  issues: read
 
 tools:
   github:
-    toolsets: [code, pull_requests, issues]
+    toolsets: [repos, pull_requests, issues]
 
 if: "!contains(github.event.*.labels.*.name, 'needs-human-intervention')"
 
@@ -30,9 +30,9 @@ steps:
       fi
 
 safe-outputs:
-  - create-pull-request
-  - add-comment
-  - add-label
+  create-pull-request:
+  add-comment:
+  add-labels:
 ---
 
 # BMAD Correct Course Agent

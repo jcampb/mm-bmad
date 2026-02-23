@@ -11,12 +11,12 @@ timeout-minutes: 30
 
 permissions:
   contents: read
-  pull-requests: write
+  pull-requests: read
   issues: read
 
 tools:
   github:
-    toolsets: [code, pull_requests, issues]
+    toolsets: [repos, pull_requests, issues]
 
 if: "!contains(github.event.*.labels.*.name, 'needs-human-intervention')"
 
@@ -30,8 +30,9 @@ steps:
 
   - name: Skip if human push
     id: skip-check
+    env:
+      AUTHOR: ${{ github.event.sender.login }}
     run: |
-      AUTHOR="${{ github.event.sender.login }}"
       if [ "$AUTHOR" != "github-actions[bot]" ] && [ "$AUTHOR" != "copilot-swe-agent[bot]" ]; then
         echo "skip=true" >> $GITHUB_OUTPUT
         echo "Human push detected — skipping automated review"
@@ -40,8 +41,8 @@ steps:
       echo "skip=false" >> $GITHUB_OUTPUT
 
 safe-outputs:
-  - submit-pr-review
-  - add-comment
+  submit-pull-request-review:
+  add-comment:
 ---
 
 # BMAD Code Review Agent
@@ -164,8 +165,8 @@ Validate every claim. Check PR diff reality vs story claims.
    - For each finding: specific action items describing what must be fixed and where.
 
 3. Determine the review decision:
-   - If there are ZERO CRITICAL and ZERO HIGH findings: submit a PR review via `submit-pr-review` with **approve** status. Include all MEDIUM and LOW findings as suggestions.
-   - If there are ANY CRITICAL or HIGH findings: submit a PR review via `submit-pr-review` with **request_changes** status. List every CRITICAL and HIGH finding as a required action item with the specific file, location, and what must be corrected.
+   - If there are ZERO CRITICAL and ZERO HIGH findings: submit a PR review via `submit-pull-request-review` with **approve** status. Include all MEDIUM and LOW findings as suggestions.
+   - If there are ANY CRITICAL or HIGH findings: submit a PR review via `submit-pull-request-review` with **request_changes** status. List every CRITICAL and HIGH finding as a required action item with the specific file, location, and what must be corrected.
 
 ### Step 5: Post summary comment
 
@@ -193,7 +194,7 @@ Validate every claim. Check PR diff reality vs story claims.
 - [ ] Code quality review performed on changed files
 - [ ] Security review performed on changed files and dependencies
 - [ ] Outcome decided (Approve/Changes Requested)
-- [ ] Review submitted via submit-pr-review
+- [ ] Review submitted via submit-pull-request-review
 - [ ] Summary comment posted via add-comment
 
 ## Guardrails
@@ -208,7 +209,7 @@ When you cannot proceed due to missing information, ambiguity, or a blocking iss
 - This workflow is READ-ONLY -- output is review comments only
 - Do NOT modify any source code, test files, story files, or any other files
 - Do NOT reference or invoke other workflows by name
-- All output goes through safe-outputs only (submit-pr-review and add-comment)
+- All output goes through safe-outputs only (submit-pull-request-review and add-comment)
 - If you need something outside your scope, use the blocker protocol
 
 ### Circuit Breaker

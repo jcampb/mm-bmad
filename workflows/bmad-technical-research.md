@@ -5,19 +5,19 @@ source: jcampb/mm-bmad/workflows/bmad-technical-research@main
 on:
   issues:
     types: [labeled]
-  label: bmad-analysis-technical-research
+    names: [bmad-analysis-technical-research]
 
 engine: claude
 timeout-minutes: 30
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
+  pull-requests: read
+  issues: read
 
 tools:
   github:
-    toolsets: [code, pull_requests, issues]
+    toolsets: [repos, pull_requests, issues]
 
 if: "!contains(github.event.*.labels.*.name, 'needs-human-intervention')"
 
@@ -30,8 +30,8 @@ steps:
       fi
 
 safe-outputs:
-  - create-pull-request
-  - add-comment
+  create-pull-request:
+  add-comment:
 ---
 
 # BMAD Technical Research Agent

@@ -13,12 +13,12 @@ timeout-minutes: 30
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
+  pull-requests: read
+  issues: read
 
 tools:
   github:
-    toolsets: [code, pull_requests, issues]
+    toolsets: [repos, pull_requests, issues]
 
 if: "!contains(github.event.*.labels.*.name, 'needs-human-intervention')"
 
@@ -32,8 +32,9 @@ steps:
 
   - name: Count review cycles
     id: guard
+    env:
+      PR: ${{ github.event.pull_request.number }}
     run: |
-      PR="${{ github.event.pull_request.number }}"
       CYCLES=$(gh pr view "$PR" --json reviews \
         --jq '[.reviews[] | select(.state == "CHANGES_REQUESTED")] | length')
       echo "cycles=$CYCLES" >> $GITHUB_OUTPUT
@@ -44,9 +45,9 @@ steps:
       fi
 
 safe-outputs:
-  - push-to-pr
-  - add-comment
-  - add-label
+  push-to-pull-request-branch:
+  add-comment:
+  add-labels:
 ---
 
 # BMAD Dev Story Agent
@@ -84,8 +85,8 @@ The story file is the primary artifact associated with this pull request. Locate
 5. Load comprehensive context from the story file's Dev Notes section. Extract developer guidance: architecture requirements, previous learnings, technical specifications. Use this context to inform implementation decisions and approaches.
 6. Identify the first incomplete task (unchecked `[ ]`) in Tasks/Subtasks.
 7. If no incomplete tasks remain, go to **Step 9: Story completion and mark for review**.
-8. If the story file is inaccessible: **HALT** -- post a comment via `add-comment` stating "Cannot develop story without access to story file" and apply the `needs-human-intervention` label via `add-label`. Stop all work.
-9. If incomplete task or subtask requirements are ambiguous: **HALT** -- post a comment via `add-comment` explaining the ambiguity and what clarification is needed, and apply the `needs-human-intervention` label via `add-label`. Stop all work.
+8. If the story file is inaccessible: **HALT** -- post a comment via `add-comment` stating "Cannot develop story without access to story file" and apply the `needs-human-intervention` label via `add-labels`. Stop all work.
+9. If incomplete task or subtask requirements are ambiguous: **HALT** -- post a comment via `add-comment` explaining the ambiguity and what clarification is needed, and apply the `needs-human-intervention` label via `add-labels`. Stop all work.
 
 ### Step 2: Load project context and story information
 
@@ -118,7 +119,7 @@ Determine if this is a fresh start or a continuation after code review.
 2. **If the sprint status file exists:**
    - Read the full sprint status file.
    - Find the story key in the `development_status` section.
-   - If current status is `ready-for-dev` or review continuation is true: update the story status to `in-progress` via `push-to-pr`.
+   - If current status is `ready-for-dev` or review continuation is true: update the story status to `in-progress` via `push-to-pull-request-branch`.
    - If current status is already `in-progress`: no update needed, resume work.
    - If current status is unexpected: note the discrepancy but continue.
 3. **If no sprint status file exists:**
@@ -147,9 +148,9 @@ Follow the story file Tasks/Subtasks sequence EXACTLY as written. No deviation.
 10. Document technical approach and decisions in Dev Agent Record (Implementation Plan section).
 
 **HALT conditions during implementation:**
-- If new dependencies are required beyond story specifications: **HALT** -- post a comment via `add-comment` stating "Additional dependencies need user approval: [list dependencies]" and apply the `needs-human-intervention` label via `add-label`. Stop all work.
-- If 3 consecutive implementation failures occur: **HALT** -- post a comment via `add-comment` describing the failures and requesting guidance, and apply the `needs-human-intervention` label via `add-label`. Stop all work.
-- If required configuration is missing: **HALT** -- post a comment via `add-comment` stating "Cannot proceed without necessary configuration files: [list files]" and apply the `needs-human-intervention` label via `add-label`. Stop all work.
+- If new dependencies are required beyond story specifications: **HALT** -- post a comment via `add-comment` stating "Additional dependencies need user approval: [list dependencies]" and apply the `needs-human-intervention` label via `add-labels`. Stop all work.
+- If 3 consecutive implementation failures occur: **HALT** -- post a comment via `add-comment` describing the failures and requesting guidance, and apply the `needs-human-intervention` label via `add-labels`. Stop all work.
+- If required configuration is missing: **HALT** -- post a comment via `add-comment` stating "Cannot proceed without necessary configuration files: [list files]" and apply the `needs-human-intervention` label via `add-labels`. Stop all work.
 
 Do NOT implement anything not mapped to a specific task/subtask in the story file. Do NOT proceed to the next task until the current task/subtask is complete AND tests pass. Execute continuously without pausing until all tasks/subtasks are complete or an explicit HALT condition is triggered. Do NOT propose to pause for review until Step 9 completion gates are satisfied.
 
@@ -196,13 +197,13 @@ Never mark a task complete unless ALL conditions are met.
 
 **If ANY validation fails:**
 9. DO NOT mark task complete -- fix issues first.
-10. If unable to fix validation failures: **HALT** -- post a comment via `add-comment` describing the validation failures and apply the `needs-human-intervention` label via `add-label`. Stop all work.
+10. If unable to fix validation failures: **HALT** -- post a comment via `add-comment` describing the validation failures and apply the `needs-human-intervention` label via `add-labels`. Stop all work.
 
 **Review continuation tracking:**
 11. If in review continuation mode and resolved review items exist: count total resolved review items in this session and add a Change Log entry: "Addressed code review findings -- [count] items resolved (Date: [date])".
 
 **Persist story file updates:**
-12. Push the updated story file via `push-to-pr`.
+12. Push the updated story file via `push-to-pull-request-branch`.
 
 **Loop or complete:**
 13. If more incomplete tasks remain: return to **Step 5**.
@@ -217,21 +218,21 @@ Never mark a task complete unless ALL conditions are met.
 5. Update the story Status to: `review`.
 
 **Sprint status update:**
-6. If a sprint status file exists: find the story key, verify current status is `in-progress`, update it to `review`, and push the updated file via `push-to-pr`.
+6. If a sprint status file exists: find the story key, verify current status is `in-progress`, update it to `review`, and push the updated file via `push-to-pull-request-branch`.
 7. If no sprint status file exists: story status is tracked in the story file only.
 
 **Final validation gates -- if any fail, HALT:**
-- If any task is incomplete: **HALT** -- post a comment via `add-comment` stating "Remaining incomplete tasks prevent marking story ready for review" and apply the `needs-human-intervention` label via `add-label`. Stop all work.
-- If regression failures exist: **HALT** -- post a comment via `add-comment` describing the regression failures and apply the `needs-human-intervention` label via `add-label`. Stop all work.
+- If any task is incomplete: **HALT** -- post a comment via `add-comment` stating "Remaining incomplete tasks prevent marking story ready for review" and apply the `needs-human-intervention` label via `add-labels`. Stop all work.
+- If regression failures exist: **HALT** -- post a comment via `add-comment` describing the regression failures and apply the `needs-human-intervention` label via `add-labels`. Stop all work.
 - If File List is incomplete: **HALT** -- fix the File List before completing.
-- If definition-of-done validation fails: **HALT** -- post a comment via `add-comment` listing the DoD failures and apply the `needs-human-intervention` label via `add-label`. Stop all work.
+- If definition-of-done validation fails: **HALT** -- post a comment via `add-comment` listing the DoD failures and apply the `needs-human-intervention` label via `add-labels`. Stop all work.
 
 ### Step 10: Completion communication
 
 1. Execute the enhanced definition-of-done checklist using the validation framework (see Checklist below).
 2. Prepare a concise summary in Dev Agent Record > Completion Notes.
 3. Post a comment via `add-comment` summarizing that story implementation is complete and ready for review. Include: story ID, story key, title, key changes made, tests added, files modified, story file path, and current status (`review`).
-4. Push all final story file updates via `push-to-pr`.
+4. Push all final story file updates via `push-to-pull-request-branch`.
 
 ## Checklist
 

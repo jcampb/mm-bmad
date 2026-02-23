@@ -13,14 +13,14 @@ timeout-minutes: 15
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
+  pull-requests: read
+  issues: read
 
 tools:
   github:
-    toolsets: [code, pull_requests, issues]
+    toolsets: [repos, pull_requests, issues]
 
-if: "!contains(github.event.*.labels.*.name, 'needs-human-intervention')"
+if: "contains(github.event.*.labels.*.name, 'needs-human-intervention') == false"
 
 steps:
   - name: Read project config
@@ -32,10 +32,12 @@ steps:
 
   - name: Check if resume applicable
     id: resume-check
+    env:
+      EVENT_ACTION: ${{ github.event.action }}
+      REMOVED_LABEL: ${{ github.event.label.name }}
     run: |
       # For unlabeled events, check if the removed label was needs-human-intervention
-      if [ "${{ github.event.action }}" = "unlabeled" ]; then
-        REMOVED_LABEL="${{ github.event.label.name }}"
+      if [ "$EVENT_ACTION" = "unlabeled" ]; then
         if [ "$REMOVED_LABEL" != "needs-human-intervention" ]; then
           echo "skip=true" >> $GITHUB_OUTPUT
           echo "Not a needs-human-intervention label removal — skipping"
@@ -46,8 +48,8 @@ steps:
       echo "skip=false" >> $GITHUB_OUTPUT
 
 safe-outputs:
-  - add-comment
-  - add-label
+  add-comment:
+  add-labels:
 ---
 
 # BMAD Resume Agent
@@ -121,7 +123,7 @@ You are Bob, a Technical Scrum Master + Story Preparation Specialist. Certified 
    - A brief summary of what was blocking
    - What the human's resolution was
    - What happens next (which workflow phase will resume)
-2. Add the appropriate trigger label via `add-label` to resume the correct workflow. Determine the label from:
+2. Add the appropriate trigger label via `add-labels` to resume the correct workflow. Determine the label from:
    - The workflow context visible in the thread (what workflow was running when it halted)
    - The state of the issue or PR (what phase of work was in progress)
    - Labels currently on the issue or PR that indicate the workflow phase
@@ -134,7 +136,7 @@ You are Bob, a Technical Scrum Master + Story Preparation Specialist. Certified 
    - What the human provided
    - What is still missing or unclear
    - Specific questions or actions needed to fully resolve the blocker
-2. Add the `needs-human-intervention` label via `add-label` to signal the issue is still blocked.
+2. Add the `needs-human-intervention` label via `add-labels` to signal the issue is still blocked.
 
 ## Guardrails
 

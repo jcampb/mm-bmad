@@ -5,19 +5,19 @@ source: jcampb/mm-bmad/workflows/bmad-create-ux-design@main
 on:
   issues:
     types: [labeled]
-  label: bmad-plan-ux-design
+    names: [bmad-plan-ux-design]
 
 engine: claude
 timeout-minutes: 30
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
+  pull-requests: read
+  issues: read
 
 tools:
   github:
-    toolsets: [code, pull_requests, issues]
+    toolsets: [repos, pull_requests, issues]
 
 if: "!contains(github.event.*.labels.*.name, 'needs-human-intervention')"
 
@@ -30,8 +30,8 @@ steps:
       fi
 
 safe-outputs:
-  - create-pull-request
-  - add-comment
+  create-pull-request:
+  add-comment:
 ---
 
 # BMAD Create UX Design Agent

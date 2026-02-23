@@ -5,19 +5,19 @@ source: jcampb/mm-bmad/workflows/bmad-retrospective@main
 on:
   issues:
     types: [labeled]
-  label: bmad-retrospective
+    names: [bmad-retrospective]
 
 engine: claude
 timeout-minutes: 30
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
+  pull-requests: read
+  issues: read
 
 tools:
   github:
-    toolsets: [code, pull_requests, issues]
+    toolsets: [repos, pull_requests, issues]
 
 if: "!contains(github.event.*.labels.*.name, 'needs-human-intervention')"
 
@@ -30,7 +30,7 @@ steps:
       fi
 
 safe-outputs:
-  - add-comment
+  add-comment:
 ---
 
 # BMAD Retrospective Agent

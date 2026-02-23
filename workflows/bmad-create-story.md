@@ -5,19 +5,19 @@ source: jcampb/mm-bmad/workflows/bmad-create-story@main
 on:
   issues:
     types: [labeled]
-  label: bmad-story
+    names: [bmad-story]
 
 engine: claude
 timeout-minutes: 30
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
+  pull-requests: read
+  issues: read
 
 tools:
   github:
-    toolsets: [code, pull_requests, issues]
+    toolsets: [repos, pull_requests, issues]
 
 if: "!contains(github.event.*.labels.*.name, 'needs-human-intervention')"
 
@@ -30,8 +30,8 @@ steps:
       fi
 
 safe-outputs:
-  - create-pull-request
-  - remove-label
+  create-pull-request:
+  remove-labels:
 ---
 
 # BMAD Create Story Agent
@@ -221,7 +221,7 @@ Compose the story file with these sections:
    - PR title: `story: Create story [story_key] -- [story_title]`
    - PR body: Include the story ID, story key, epic number, story number, story title, and a summary of the context included (architecture guidance, previous story learnings, technical specifications)
 4. Post a comment on the triggering issue summarizing that the story has been created, linking to the PR, and noting key details: story ID, story key, status (`ready-for-dev`), and what context was included.
-5. Remove the `bmad-story` label from the triggering issue using the `remove-label` safe-output.
+5. Remove the `bmad-story` label from the triggering issue using the `remove-labels` safe-output.
 
 ## Checklist
 

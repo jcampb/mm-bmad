@@ -5,19 +5,19 @@ source: jcampb/mm-bmad/workflows/bmad-party-mode@main
 on:
   issues:
     types: [labeled]
-  label: bmad-party-mode
+    names: [bmad-party-mode]
 
 engine: claude
 timeout-minutes: 30
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
+  pull-requests: read
+  issues: read
 
 tools:
   github:
-    toolsets: [code, pull_requests, issues]
+    toolsets: [repos, pull_requests, issues]
 
 if: "!contains(github.event.*.labels.*.name, 'needs-human-intervention')"
 
@@ -30,8 +30,8 @@ steps:
       fi
 
 safe-outputs:
-  - add-comment
-  - add-label
+  add-comment:
+  add-labels:
 ---
 
 # BMAD Party Mode Agent
@@ -179,7 +179,7 @@ Analyze the topic through each perspective lens sequentially:
 
 ### Step 7: Mark analysis complete
 
-1. Add the `bmad-consensus` label via `add-label` to indicate the multi-perspective analysis is complete and a recommendation has been posted.
+1. Add the `bmad-consensus` label via `add-labels` to indicate the multi-perspective analysis is complete and a recommendation has been posted.
 
 ## Guardrails
 
