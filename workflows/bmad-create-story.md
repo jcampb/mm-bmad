@@ -47,12 +47,9 @@ steps:
       fi
       EPIC_NUM=$(echo "$EPIC_LABEL" | sed 's/epic-//')
 
-      # Fetch all remote refs so we can find the epic branch
-      git fetch origin
-
-      # Map epic label to branch
-      EPIC_BRANCH=$(git branch -r --list "origin/epic-${EPIC_NUM}-*" | head -1 \
-        | sed 's|origin/||' | xargs)
+      # Find epic branch via GitHub API (git credentials not available in pre-steps)
+      EPIC_BRANCH=$(gh api "repos/${REPO}/branches" --jq \
+        "[.[].name | select(startswith(\"epic-${EPIC_NUM}-\"))] | first // empty")
       if [ -z "$EPIC_BRANCH" ]; then
         echo "error=no-epic-branch" >> $GITHUB_OUTPUT
         exit 0
@@ -76,12 +73,12 @@ steps:
         exit 0
       fi
 
-      # Create story branch from epic
+      # Create story branch from epic branch via GitHub API
       STORY_BRANCH="story/${STORY_KEY}"
-      git fetch origin "$EPIC_BRANCH"
-      git checkout -b "$STORY_BRANCH" "origin/${EPIC_BRANCH}" 2>/dev/null \
-        || git checkout "$STORY_BRANCH"
-      git push -u origin "$STORY_BRANCH"
+      EPIC_SHA=$(gh api "repos/${REPO}/git/ref/heads/${EPIC_BRANCH}" --jq '.object.sha')
+      # Create the branch ref (ignore error if it already exists)
+      gh api "repos/${REPO}/git/refs" \
+        -f "ref=refs/heads/${STORY_BRANCH}" -f "sha=${EPIC_SHA}" 2>/dev/null || true
 
       # Create draft PR targeting epic branch
       PR_URL=$(gh pr create --repo "$REPO" \
