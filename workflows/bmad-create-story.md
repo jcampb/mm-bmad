@@ -47,6 +47,9 @@ steps:
       fi
       EPIC_NUM=$(echo "$EPIC_LABEL" | sed 's/epic-//')
 
+      # Fetch all remote refs so we can find the epic branch
+      git fetch origin
+
       # Map epic label to branch
       EPIC_BRANCH=$(git branch -r --list "origin/epic-${EPIC_NUM}-*" | head -1 \
         | sed 's|origin/||' | xargs)
