@@ -81,6 +81,7 @@ steps:
 
 safe-outputs:
   create-pull-request:
+    base-branch: ${{ steps.epic-branch.outputs.epic_branch }}
   push-to-pull-request-branch:
   remove-labels:
   add-labels:
