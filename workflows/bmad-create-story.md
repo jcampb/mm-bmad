@@ -279,10 +279,11 @@ Compose the story file with these sections:
    - PR body: Story creation for issue #[issue_number]. Include the story ID, story key, epic number, story number, story title, and a summary of the context included.
    - **Base branch:** Set the base branch to `epic_branch` from the pre-step outputs (NOT main).
    - **Head branch:** Use `story_branch` from the pre-step outputs as the branch name.
-   - **Labels:** Include `bmad-pipeline`, `epic_label`, and `bmad-dev-ready` on the PR.
+   - **Labels:** Include `bmad-pipeline` and `epic_label` on the PR (NOT `bmad-dev-ready` yet).
    - **Draft:** Create as a draft PR.
-4. Post a comment on the triggering issue via `add-comment` summarizing that the story has been created, linking to the PR, and noting key details: story ID, story key, status (`ready-for-dev`), and what context was included.
-5. Remove the `bmad-story` label from the triggering issue using the `remove-labels` safe-output.
+4. AFTER the PR is created, add the `bmad-dev-ready` label to it via the `add-labels` safe-output. This MUST be a separate step from PR creation so that the `labeled` event fires and triggers the pipeline glue workflow.
+5. Post a comment on the triggering issue via `add-comment` summarizing that the story has been created, linking to the PR, and noting key details: story ID, story key, status (`ready-for-dev`), and what context was included.
+6. Remove the `bmad-story` label from the triggering issue using the `remove-labels` safe-output.
 
 ## Branching Context
 
