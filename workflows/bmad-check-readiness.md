@@ -301,7 +301,7 @@ Compile all findings into the implementation readiness report:
 When you cannot proceed due to missing information, ambiguity, or a blocking issue:
 1. Post a comment explaining exactly what you need and why you are blocked
 2. Add the label `needs-human-intervention` to signal the halt
-3. Stop all work immediately — do not guess or assume
+3. Stop all work immediately -- do not guess or assume
 
 ### Scope Constraints
 - This workflow reads planning artifacts only (PRD, architecture, UX design, epics/stories)
