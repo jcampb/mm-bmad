@@ -22,21 +22,21 @@ trigger:
       types: [submitted]
 
 safe_outputs:                                # list of safe-output names
-  - push-to-pr
+  - push-to-pull-request-branch
   - add-comment
-  - add-label
+  - add-labels
 
 pre_steps:                                   # pre-step templates to include
   - config-loader
   - cycle-counter
 
-permissions:                                 # minimal permissions for this workflow
+permissions:                                 # always read-only; safe-outputs handle writes
   contents: read
-  pull-requests: write
-  issues: write
+  pull-requests: read
+  issues: read
 
-toolsets:                                    # gh-aw tool groups
-  - code
+toolsets:                                    # gh-aw tool groups (NOT "code" — use "repos")
+  - repos
   - pull_requests
   - issues
 
@@ -77,20 +77,26 @@ engine: claude
 timeout-minutes: 30
 
 permissions:
-  {permissions}
+  contents: read
+  pull-requests: read
+  issues: read
 
 tools:
   github:
-    toolsets: [{toolsets}]
+    toolsets: [{toolsets — use repos, pull_requests, issues — NOT "code"}]
 
 if: "!contains(github.event.*.labels.*.name, 'needs-human-intervention')"
+# NOTE: For workflows with dual on: triggers (e.g. issues + issue_comment),
+# use "contains(...) == false" instead to avoid YAML quoting issues in compiled output.
 
 steps:
   {expand each entry in pre_steps using the Pre-Step Templates below}
   {config-loader is already shown in the template — do NOT emit it twice}
 
 safe-outputs:
-  {safe_outputs list}
+  {safe_outputs as YAML object keys with no values, e.g.:}
+  {create-pull-request:}
+  {add-comment:}
 ---
 
 # BMAD {workflow_title} Agent
@@ -164,8 +170,9 @@ After evaluating through all perspectives:
 ```yaml
   - name: Count review cycles
     id: guard
+    env:
+      PR: ${{ github.event.pull_request.number }}
     run: |
-      PR="${{ github.event.pull_request.number }}"
       CYCLES=$(gh pr view "$PR" --json reviews \
         --jq '[.reviews[] | select(.state == "CHANGES_REQUESTED")] | length')
       echo "cycles=$CYCLES" >> $GITHUB_OUTPUT
@@ -180,8 +187,9 @@ After evaluating through all perspectives:
 ```yaml
   - name: Skip if human push
     id: skip-check
+    env:
+      AUTHOR: ${{ github.event.sender.login }}
     run: |
-      AUTHOR="${{ github.event.sender.login }}"
       if [ "$AUTHOR" != "github-actions[bot]" ] && [ "$AUTHOR" != "copilot-swe-agent[bot]" ]; then
         echo "skip=true" >> $GITHUB_OUTPUT
         echo "Human push detected — skipping automated review"
@@ -236,12 +244,12 @@ These patterns exist for IDE-based agents and must NOT appear in gh-aw workflows
 
 | BMAD Pattern | gh-aw Translation |
 |---|---|
-| "Ask user for clarification" | Blocker protocol: add-comment explaining need + add-label `needs-human-intervention` |
-| "Save file to output folder" | Use appropriate safe-output (push-to-pr, create-pull-request) |
+| "Ask user for clarification" | Blocker protocol: add-comment explaining need + add-labels `needs-human-intervention` |
+| "Save file to output folder" | Use appropriate safe-output (push-to-pull-request-branch, create-pull-request) |
 | "Load next step file" | Inline as next section in Instructions |
 | "Update frontmatter stepsCompleted" | Not needed — gh-aw workflows are single-pass |
 | "Run tests" | Instruct agent to use code tools to run tests |
-| "Commit changes" | Instruct agent to use push-to-pr safe-output |
+| "Commit changes" | Instruct agent to use push-to-pull-request-branch safe-output |
 | Sequential pipeline (A then B) | Human-gated: this workflow creates a PR with its artifact. The human reviews, merges, and adds the next label. Do not reference the next workflow. |
 | Autonomous loop (dev ↔ review) | Event-driven: push triggers review, changes_requested triggers dev. Each workflow is self-contained — GitHub events provide the coupling. |
 | `agent.metadata.capabilities` | Already reflected in the `toolsets` input provided by orchestrator. Use capabilities text to inform the Focus field in multi-perspective workflows. |
@@ -272,6 +280,16 @@ When you cannot proceed due to missing information, ambiguity, or a blocking iss
 ### Circuit Breaker
 All workflows halt when the `needs-human-intervention` label is present.
 ```
+
+## gh-aw Schema Rules
+
+- **Permissions** are always `read`. Safe-outputs handle writes.
+- **Toolsets:** Valid values are `repos`, `pull_requests`, `issues`. NOT `code`.
+- **Safe-outputs** are YAML object keys (e.g. `add-comment:`) not array items (e.g. `- add-comment`).
+- **Label triggers** use `names: [label]` nested under `issues:`, not `label:` as sibling of `on:`.
+- **Pre-step `${{ }}` expressions** must go in `env:` blocks, not inline in shell scripts.
+- **`if:` guard**: Use `"contains(...) == false"` for workflows with dual `on:` triggers (avoids YAML quoting issues).
+- **Valid safe-output names:** `push-to-pull-request-branch`, `create-pull-request`, `submit-pull-request-review`, `add-comment`, `add-labels`, `remove-labels`.
 
 ## Constraints on Your Output
 

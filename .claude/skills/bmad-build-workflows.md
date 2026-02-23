@@ -81,10 +81,10 @@ Use the frontmatter decision tree to classify each workflow:
 
 | Workflow | Trigger | Safe-Outputs | Pre-Steps |
 |---|---|---|---|
-| `create-story` | `issues: types: [labeled]`, label: `bmad-story` | `create-pull-request`, `remove-label` | `config-loader` |
-| `dev-story` | `pull_request: types: [ready_for_review]` + `pull_request_review: types: [submitted]` | `push-to-pr`, `add-comment`, `add-label` | `config-loader`, `cycle-counter` |
-| `code-review` | `pull_request: types: [synchronize]` | `submit-pr-review`, `add-comment` | `config-loader`, `skip-if-human-push` |
-| `correct-course` | `issues: types: [labeled]`, label: `bmad-correct-course` | `create-pull-request`, `add-comment`, `add-label` | `config-loader` |
+| `create-story` | `issues: types: [labeled]`, label: `bmad-story` | `create-pull-request`, `remove-labels` | `config-loader` |
+| `dev-story` | `pull_request: types: [ready_for_review]` + `pull_request_review: types: [submitted]` | `push-to-pull-request-branch`, `add-comment`, `add-labels` | `config-loader`, `cycle-counter` |
+| `code-review` | `pull_request: types: [synchronize]` | `submit-pull-request-review`, `add-comment` | `config-loader`, `skip-if-human-push` |
+| `correct-course` | `issues: types: [labeled]`, label: `bmad-correct-course` | `create-pull-request`, `add-comment`, `add-labels` | `config-loader` |
 | `retrospective` | `issues: types: [labeled]`, label: `bmad-retrospective` | `add-comment` | `config-loader` |
 | `sprint-planning` | `issues: types: [labeled]`, label: `bmad-sprint-planning` | `add-comment` | `config-loader` |
 | `sprint-status` | `issues: types: [labeled]`, label: `bmad-sprint-status` | `add-comment` | `config-loader` |
@@ -100,19 +100,17 @@ Use the frontmatter decision tree to classify each workflow:
 
 ### Permissions
 
-All workflows get:
+All workflows get read-only permissions. Safe-outputs handle all write operations:
 ```yaml
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
+  pull-requests: read
+  issues: read
 ```
-
-Exception: `code-review` gets `issues: read` (not write) since it only reads issues and writes PR reviews.
 
 ### Toolsets
 
-All workflows get `[code, pull_requests, issues]`.
+All workflows get `[repos, pull_requests, issues]`. Note: `code` is NOT a valid gh-aw toolset — use `repos`.
 
 ## Step 3: Present to User
 
@@ -171,7 +169,7 @@ pre_steps:
 permissions:
   {from classification}
 
-toolsets: [code, pull_requests, issues]
+toolsets: [repos, pull_requests, issues]
 
 agent_definitions:
   {for each owning agent — full extracted definition}
@@ -231,7 +229,7 @@ After ALL workflows are generated, validate across the full set:
 |---|---|
 | No duplicate triggers | Two workflows don't trigger on the same label |
 | Guardrail consistency | Blocker protocol wording is identical across all workflows |
-| Label vocabulary closed | Every label in `add-label`/`remove-label` is a known trigger or state label |
+| Label vocabulary closed | Every label in `add-labels`/`remove-labels` is a known trigger or state label |
 
 ## Step 7: Write and Commit
 
@@ -243,4 +241,40 @@ For each approved workflow:
 ```bash
 git add workflows/*.md
 git commit -m "feat: regenerate BMAD gh-aw workflows from source"
+```
+
+## gh-aw Schema Reference
+
+Key schema rules discovered during v2 compilation:
+
+### Frontmatter
+- **Toolsets:** Valid values are `repos`, `pull_requests`, `issues`, `context`, `actions`. NOT `code`.
+- **Permissions:** Always `read`. Safe-outputs handle all write operations.
+- **Safe-outputs:** YAML object (keys with null values), NOT array. E.g. `create-pull-request:` not `- create-pull-request`.
+- **Label triggers:** Use `names: [label-name]` nested under `issues:`, NOT `label:` as sibling of `on:`.
+- **Template expressions in pre-steps:** Must go in `env:` blocks, not directly in shell. Prevents template injection.
+- **if guard:** Use `"contains(...) == false"` instead of `"!contains(...)"` for workflows with dual triggers (avoids YAML quoting issues in compiled output).
+
+### Valid Safe-Output Names
+- `push-to-pull-request-branch` (not `push-to-pr`)
+- `create-pull-request` (correct)
+- `submit-pull-request-review` (not `submit-pr-review`)
+- `add-comment` (correct)
+- `add-labels` (not `add-label`)
+- `remove-labels` (not `remove-label`)
+
+### Label Trigger Format
+```yaml
+on:
+  issues:
+    types: [labeled]
+    names: [bmad-analysis-product-brief]
+```
+
+NOT:
+```yaml
+on:
+  label: bmad-analysis-product-brief
+  issues:
+    types: [labeled]
 ```
