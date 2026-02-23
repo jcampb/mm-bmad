@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-create-story@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"7651d7443094bdf490df6fc6c374e6a029a6d45201cd6db115dd60fafb6e6b9c","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"675b9a643552ce3610742f43e9d07396f3983fa96230d1235b30461afa1f472a","compiler_version":"v0.49.2"}
 
 name: "BMAD Create Story Agent"
 "on":
@@ -121,8 +121,9 @@ jobs:
           cat "/opt/gh-aw/prompts/safe_outputs_prompt.md"
           cat << 'GH_AW_PROMPT_EOF'
           <safe-output-tools>
-          Tools: add_comment, add_labels, remove_labels, push_to_pull_request_branch, missing_tool, missing_data
+          Tools: add_comment, create_pull_request, add_labels, remove_labels, push_to_pull_request_branch, missing_tool, missing_data
           GH_AW_PROMPT_EOF
+          cat "/opt/gh-aw/prompts/safe_outputs_create_pull_request.md"
           cat "/opt/gh-aw/prompts/safe_outputs_push_to_pr_branch.md"
           cat << 'GH_AW_PROMPT_EOF'
           </safe-output-tools>
@@ -272,7 +273,7 @@ jobs:
           REPO: ${{ github.repository }}
         id: epic-branch
         name: Detect epic branch and create story PR
-        run: "# Find epic-N label on issue\nEPIC_LABEL=$(gh issue view \"$ISSUE_NUMBER\" --repo \"$REPO\" \\\n  --json labels --jq '[.labels[].name | select(startswith(\"epic-\"))] | first // empty')\nif [ -z \"$EPIC_LABEL\" ]; then\n  echo \"error=no-epic-label\" >> $GITHUB_OUTPUT\n  exit 0\nfi\nEPIC_NUM=$(echo \"$EPIC_LABEL\" | sed 's/epic-//')\n\n# Find epic branch via GitHub API (git credentials not available in pre-steps)\nEPIC_BRANCH=$(gh api \"repos/${REPO}/branches\" --jq \\\n  \"[.[].name | select(startswith(\\\"epic-${EPIC_NUM}-\\\"))] | first // empty\")\nif [ -z \"$EPIC_BRANCH\" ]; then\n  echo \"error=no-epic-branch\" >> $GITHUB_OUTPUT\n  exit 0\nfi\n\n# Extract story key from issue title\n# Supports: \"Story 7.2\", \"Story 7-2\", \"7-2-feature-name\", \"7.2 Feature Name\"\nISSUE_TITLE=$(gh issue view \"$ISSUE_NUMBER\" --repo \"$REPO\" \\\n  --json title --jq '.title')\n# First try dash format (7-2 or 7-2-feature-name)\nSTORY_KEY=$(echo \"$ISSUE_TITLE\" \\\n  | grep -oiE '[0-9]+-[0-9]+(-[a-z0-9-]+)?' | head -1 \\\n  | tr '[:upper:]' '[:lower:]')\n# Fall back to dot format (7.2) and normalize to dash\nif [ -z \"$STORY_KEY\" ]; then\n  STORY_KEY=$(echo \"$ISSUE_TITLE\" \\\n    | grep -oE '[0-9]+\\.[0-9]+' | head -1 | tr '.' '-')\nfi\nif [ -z \"$STORY_KEY\" ]; then\n  echo \"error=no-story-key\" >> $GITHUB_OUTPUT\n  exit 0\nfi\n\n# Create story branch from epic branch via GitHub API\nSTORY_BRANCH=\"story/${STORY_KEY}\"\nEPIC_SHA=$(gh api \"repos/${REPO}/git/ref/heads/${EPIC_BRANCH}\" --jq '.object.sha')\n# Create the branch ref (ignore error if it already exists)\ngh api \"repos/${REPO}/git/refs\" \\\n  -f \"ref=refs/heads/${STORY_BRANCH}\" -f \"sha=${EPIC_SHA}\" 2>/dev/null || true\n\n# Create draft PR targeting epic branch\nPR_URL=$(gh pr create --repo \"$REPO\" \\\n  --base \"$EPIC_BRANCH\" --head \"$STORY_BRANCH\" \\\n  --title \"story: ${STORY_KEY}\" \\\n  --body \"Story creation in progress for #${ISSUE_NUMBER}\" \\\n  --draft --label \"bmad-pipeline\" --label \"$EPIC_LABEL\")\nPR_NUMBER=$(echo \"$PR_URL\" | grep -oE '[0-9]+$')\n\necho \"epic_branch=$EPIC_BRANCH\" >> $GITHUB_OUTPUT\necho \"story_branch=$STORY_BRANCH\" >> $GITHUB_OUTPUT\necho \"story_key=$STORY_KEY\" >> $GITHUB_OUTPUT\necho \"pr_number=$PR_NUMBER\" >> $GITHUB_OUTPUT\n"
+        run: "# Find epic-N label on issue\nEPIC_LABEL=$(gh issue view \"$ISSUE_NUMBER\" --repo \"$REPO\" \\\n  --json labels --jq '[.labels[].name | select(startswith(\"epic-\"))] | first // empty')\nif [ -z \"$EPIC_LABEL\" ]; then\n  echo \"error=no-epic-label\" >> $GITHUB_OUTPUT\n  exit 0\nfi\nEPIC_NUM=$(echo \"$EPIC_LABEL\" | sed 's/epic-//')\n\n# Find epic branch via GitHub API (pre-steps have read-only permissions)\nEPIC_BRANCH=$(gh api \"repos/${REPO}/branches\" --jq \\\n  \"[.[].name | select(startswith(\\\"epic-${EPIC_NUM}-\\\"))] | first // empty\")\nif [ -z \"$EPIC_BRANCH\" ]; then\n  echo \"error=no-epic-branch\" >> $GITHUB_OUTPUT\n  exit 0\nfi\n\n# Extract story key from issue title\n# Supports: \"Story 7.2\", \"Story 7-2\", \"7-2-feature-name\", \"7.2 Feature Name\"\nISSUE_TITLE=$(gh issue view \"$ISSUE_NUMBER\" --repo \"$REPO\" \\\n  --json title --jq '.title')\n# First try dash format (7-2 or 7-2-feature-name)\nSTORY_KEY=$(echo \"$ISSUE_TITLE\" \\\n  | grep -oiE '[0-9]+-[0-9]+(-[a-z0-9-]+)?' | head -1 \\\n  | tr '[:upper:]' '[:lower:]')\n# Fall back to dot format (7.2) and normalize to dash\nif [ -z \"$STORY_KEY\" ]; then\n  STORY_KEY=$(echo \"$ISSUE_TITLE\" \\\n    | grep -oE '[0-9]+\\.[0-9]+' | head -1 | tr '.' '-')\nfi\nif [ -z \"$STORY_KEY\" ]; then\n  echo \"error=no-story-key\" >> $GITHUB_OUTPUT\n  exit 0\nfi\n\nSTORY_BRANCH=\"story/${STORY_KEY}\"\necho \"epic_branch=$EPIC_BRANCH\" >> $GITHUB_OUTPUT\necho \"epic_label=$EPIC_LABEL\" >> $GITHUB_OUTPUT\necho \"story_branch=$STORY_BRANCH\" >> $GITHUB_OUTPUT\necho \"story_key=$STORY_KEY\" >> $GITHUB_OUTPUT\n"
 
       - name: Configure Git credentials
         env:
@@ -375,7 +376,7 @@ jobs:
           mkdir -p /tmp/gh-aw/safeoutputs
           mkdir -p /tmp/gh-aw/mcp-logs/safeoutputs
           cat > /opt/gh-aw/safeoutputs/config.json << 'GH_AW_SAFE_OUTPUTS_CONFIG_EOF'
-          {"add_comment":{"max":1},"add_labels":{"max":3},"missing_data":{},"missing_tool":{},"noop":{"max":1},"push_to_pull_request_branch":{"max":0},"remove_labels":{"max":3}}
+          {"add_comment":{"max":1},"add_labels":{"max":3},"create_pull_request":{"max":1},"missing_data":{},"missing_tool":{},"noop":{"max":1},"push_to_pull_request_branch":{"max":0},"remove_labels":{"max":3}}
           GH_AW_SAFE_OUTPUTS_CONFIG_EOF
           cat > /opt/gh-aw/safeoutputs/tools.json << 'GH_AW_SAFE_OUTPUTS_TOOLS_EOF'
           [
@@ -399,6 +400,43 @@ jobs:
                 "type": "object"
               },
               "name": "add_comment"
+            },
+            {
+              "description": "Create a new GitHub pull request to propose code changes. Use this after making file edits to submit them for review and merging. The PR will be created from the current branch with your committed changes. For code review comments on an existing PR, use create_pull_request_review_comment instead. CONSTRAINTS: Maximum 1 pull request(s) can be created.",
+              "inputSchema": {
+                "additionalProperties": false,
+                "properties": {
+                  "body": {
+                    "description": "Detailed PR description in Markdown. Include what changes were made, why, testing notes, and any breaking changes. Do NOT repeat the title as a heading.",
+                    "type": "string"
+                  },
+                  "branch": {
+                    "description": "Source branch name containing the changes. If omitted, uses the current working branch.",
+                    "type": "string"
+                  },
+                  "draft": {
+                    "description": "Whether to create the PR as a draft. Draft PRs cannot be merged until marked as ready for review. Use mark_pull_request_as_ready_for_review to convert a draft PR. Default: true.",
+                    "type": "boolean"
+                  },
+                  "labels": {
+                    "description": "Labels to categorize the PR (e.g., 'enhancement', 'bugfix'). Labels must exist in the repository.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "title": {
+                    "description": "Concise PR title describing the changes. Follow repository conventions (e.g., conventional commits). The title appears as the main heading.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "title",
+                  "body"
+                ],
+                "type": "object"
+              },
+              "name": "create_pull_request"
             },
             {
               "description": "Add labels to an existing GitHub issue or pull request for categorization and filtering. Labels must already exist in the repository. For creating new issues with labels, use create_issue with the labels property instead.",
@@ -580,6 +618,42 @@ jobs:
                 "repo": {
                   "type": "string",
                   "maxLength": 256
+                }
+              }
+            },
+            "create_pull_request": {
+              "defaultMax": 1,
+              "fields": {
+                "body": {
+                  "required": true,
+                  "type": "string",
+                  "sanitize": true,
+                  "maxLength": 65000
+                },
+                "branch": {
+                  "required": true,
+                  "type": "string",
+                  "sanitize": true,
+                  "maxLength": 256
+                },
+                "draft": {
+                  "type": "boolean"
+                },
+                "labels": {
+                  "type": "array",
+                  "itemType": "string",
+                  "itemSanitize": true,
+                  "itemMaxLength": 128
+                },
+                "repo": {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                "title": {
+                  "required": true,
+                  "type": "string",
+                  "sanitize": true,
+                  "maxLength": 128
                 }
               }
             },
@@ -1095,6 +1169,22 @@ jobs:
             setupGlobals(core, github, context, exec, io);
             const { main } = require('/opt/gh-aw/actions/handle_noop_message.cjs');
             await main();
+      - name: Handle Create Pull Request Error
+        id: handle_create_pr_error
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
+          GH_AW_WORKFLOW_NAME: "BMAD Create Story Agent"
+          GH_AW_WORKFLOW_SOURCE: "jcampb/mm-bmad/workflows/bmad-create-story@main"
+          GH_AW_WORKFLOW_SOURCE_URL: "${{ github.server_url }}/jcampb/mm-bmad/tree/main/workflows/bmad-create-story"
+          GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          script: |
+            const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
+            setupGlobals(core, github, context, exec, io);
+            const { main } = require('/opt/gh-aw/actions/handle_create_pr_error.cjs');
+            await main();
 
   detection:
     needs: agent
@@ -1283,7 +1373,7 @@ jobs:
           name: agent-artifacts
           path: /tmp/gh-aw/
       - name: Checkout repository
-        if: ((!cancelled()) && (needs.agent.result != 'skipped')) && (contains(needs.agent.outputs.output_types, 'push_to_pull_request_branch'))
+        if: (((!cancelled()) && (needs.agent.result != 'skipped')) && (contains(needs.agent.outputs.output_types, 'create_pull_request'))) || (((!cancelled()) && (needs.agent.result != 'skipped')) && (contains(needs.agent.outputs.output_types, 'push_to_pull_request_branch')))
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ github.base_ref || github.ref_name }}
@@ -1291,7 +1381,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 1
       - name: Configure Git credentials
-        if: ((!cancelled()) && (needs.agent.result != 'skipped')) && (contains(needs.agent.outputs.output_types, 'push_to_pull_request_branch'))
+        if: (((!cancelled()) && (needs.agent.result != 'skipped')) && (contains(needs.agent.outputs.output_types, 'create_pull_request'))) || (((!cancelled()) && (needs.agent.result != 'skipped')) && (contains(needs.agent.outputs.output_types, 'push_to_pull_request_branch')))
         env:
           REPO_NAME: ${{ github.repository }}
           SERVER_URL: ${{ github.server_url }}
@@ -1308,7 +1398,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"add_comment\":{\"max\":1},\"add_labels\":{},\"missing_data\":{},\"missing_tool\":{},\"push_to_pull_request_branch\":{\"base_branch\":\"${{ github.base_ref || github.ref_name }}\",\"if_no_changes\":\"warn\",\"max_patch_size\":1024},\"remove_labels\":{}}"
+          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"add_comment\":{\"max\":1},\"add_labels\":{},\"create_pull_request\":{\"base_branch\":\"${{ github.base_ref || github.ref_name }}\",\"max\":1,\"max_patch_size\":1024},\"missing_data\":{},\"missing_tool\":{},\"push_to_pull_request_branch\":{\"base_branch\":\"${{ github.base_ref || github.ref_name }}\",\"if_no_changes\":\"warn\",\"max_patch_size\":1024},\"remove_labels\":{}}"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |

@@ -47,7 +47,7 @@ steps:
       fi
       EPIC_NUM=$(echo "$EPIC_LABEL" | sed 's/epic-//')
 
-      # Find epic branch via GitHub API (git credentials not available in pre-steps)
+      # Find epic branch via GitHub API (pre-steps have read-only permissions)
       EPIC_BRANCH=$(gh api "repos/${REPO}/branches" --jq \
         "[.[].name | select(startswith(\"epic-${EPIC_NUM}-\"))] | first // empty")
       if [ -z "$EPIC_BRANCH" ]; then
@@ -73,27 +73,14 @@ steps:
         exit 0
       fi
 
-      # Create story branch from epic branch via GitHub API
       STORY_BRANCH="story/${STORY_KEY}"
-      EPIC_SHA=$(gh api "repos/${REPO}/git/ref/heads/${EPIC_BRANCH}" --jq '.object.sha')
-      # Create the branch ref (ignore error if it already exists)
-      gh api "repos/${REPO}/git/refs" \
-        -f "ref=refs/heads/${STORY_BRANCH}" -f "sha=${EPIC_SHA}" 2>/dev/null || true
-
-      # Create draft PR targeting epic branch
-      PR_URL=$(gh pr create --repo "$REPO" \
-        --base "$EPIC_BRANCH" --head "$STORY_BRANCH" \
-        --title "story: ${STORY_KEY}" \
-        --body "Story creation in progress for #${ISSUE_NUMBER}" \
-        --draft --label "bmad-pipeline" --label "$EPIC_LABEL")
-      PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
-
       echo "epic_branch=$EPIC_BRANCH" >> $GITHUB_OUTPUT
+      echo "epic_label=$EPIC_LABEL" >> $GITHUB_OUTPUT
       echo "story_branch=$STORY_BRANCH" >> $GITHUB_OUTPUT
       echo "story_key=$STORY_KEY" >> $GITHUB_OUTPUT
-      echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
 
 safe-outputs:
+  create-pull-request:
   push-to-pull-request-branch:
   remove-labels:
   add-labels:
@@ -131,7 +118,7 @@ Read the `epic-branch` pre-step outputs and the triggering issue to identify the
    - `no-epic-label`: post a comment via `add-comment` explaining the issue needs an `epic-N` label and apply `needs-human-intervention` via `add-labels`. Stop all work.
    - `no-epic-branch`: post a comment via `add-comment` explaining no matching `epic-N-*` branch was found and apply `needs-human-intervention` via `add-labels`. Stop all work.
    - `no-story-key`: post a comment via `add-comment` explaining the issue title must contain a story key (e.g., `7-2-feature-name` or `7.2`) and apply `needs-human-intervention` via `add-labels`. Stop all work.
-2. From the `epic-branch` outputs, extract: `epic_branch`, `story_branch`, `story_key`, `pr_number`.
+2. From the `epic-branch` outputs, extract: `epic_branch`, `epic_label`, `story_branch`, `story_key`.
 3. Parse the `story_key` to derive `epic_num` (first number before the dash) and `story_num` (second number after the dash).
 4. Read the triggering issue title and description for additional context about the story.
 
@@ -286,12 +273,16 @@ Compose the story file with these sections:
 
 1. Run the quality validation checklist (see Checklist below) against the completed story file.
 2. If any critical checklist items fail, fix the story file before proceeding.
-3. Use `push-to-pull-request-branch` to commit the story file to the existing story PR (created by the `epic-branch` pre-step):
+3. Use the `create-pull-request` safe-output to deliver the story file:
    - Place the story file at the appropriate location in the repository (e.g., within the implementation artifacts directory or `docs/stories/`)
-   - Commit message: `story: Create story [story_key] -- [story_title]`
-4. Add the `bmad-dev-ready` label to the story PR via `add-labels`. This signals the pipeline glue to convert the draft PR to ready-for-review, which triggers the Dev Story agent.
-5. Post a comment on the triggering issue via `add-comment` summarizing that the story has been created, linking to PR #`pr_number`, and noting key details: story ID, story key, status (`ready-for-dev`), and what context was included.
-6. Remove the `bmad-story` label from the triggering issue using the `remove-labels` safe-output.
+   - PR title: `story: [story_key]`
+   - PR body: Story creation for issue #[issue_number]. Include the story ID, story key, epic number, story number, story title, and a summary of the context included.
+   - **Base branch:** Set the base branch to `epic_branch` from the pre-step outputs (NOT main).
+   - **Head branch:** Use `story_branch` from the pre-step outputs as the branch name.
+   - **Labels:** Include `bmad-pipeline`, `epic_label`, and `bmad-dev-ready` on the PR.
+   - **Draft:** Create as a draft PR.
+4. Post a comment on the triggering issue via `add-comment` summarizing that the story has been created, linking to the PR, and noting key details: story ID, story key, status (`ready-for-dev`), and what context was included.
+5. Remove the `bmad-story` label from the triggering issue using the `remove-labels` safe-output.
 
 ## Branching Context
 
@@ -303,7 +294,7 @@ main
       └── story/N-M-feature   (story branch, PR targets epic)
 ```
 
-The `epic-branch` pre-step creates the story branch from the epic branch and opens a draft PR. This workflow commits the story file to that PR. The pipeline glue then converts the draft to ready-for-review, triggering the Dev Story agent on the same PR.
+The `epic-branch` pre-step detects the epic branch and story key. This workflow creates a draft PR via `create-pull-request` targeting the epic branch with the `bmad-dev-ready` label. The pipeline glue then converts the draft to ready-for-review, triggering the Dev Story agent on the same PR.
 
 ## Checklist
 
