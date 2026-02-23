@@ -2,6 +2,8 @@ name: BMAD Pipeline Glue
 on:
   pull_request:
     types: [labeled]
+  issues:
+    types: [labeled]
 
 jobs:
   story-to-dev:
@@ -9,12 +11,23 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
+      issues: write
     steps:
       - name: Convert draft to ready and transition labels
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          ISSUE_OR_PR: ${{ github.event.pull_request.number || github.event.issue.number }}
         run: |
+          # Determine PR number (could come from pull_request or issues event)
+          PR_NUMBER="$ISSUE_OR_PR"
+
+          # Verify this is actually a PR (issues event fires for both)
+          IS_PR=$(gh pr view "$PR_NUMBER" --json number --jq '.number' 2>/dev/null || echo "")
+          if [ -z "$IS_PR" ]; then
+            echo "Issue $PR_NUMBER is not a pull request — skipping"
+            exit 0
+          fi
+
           gh pr ready "$PR_NUMBER"
           gh pr edit "$PR_NUMBER" --remove-label "bmad-dev-ready"
           gh pr edit "$PR_NUMBER" --add-label "bmad-dev-active"
