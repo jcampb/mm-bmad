@@ -9,6 +9,8 @@ You receive structured inputs from the orchestrator. You produce a single gh-aw 
 ```
 phase: "4-implementation"                    # BMAD phase folder name
 workflow_name: "dev-story"                   # workflow directory name
+workflow_title: "Dev Story"                  # display title (title-cased from name)
+purpose: "Execute story implementation..."   # one-line from workflow.yaml description
 output_filename: "bmad-dev-story.md"         # target filename in workflows/
 
 trigger:
@@ -45,14 +47,18 @@ agent_definitions:                           # one or more owning agents
     identity: "Executes approved stories..."
     communication_style: "Ultra-succinct..."
     principles: "All existing and new tests..."
-    critical_actions: [...]                   # behavioral rules from activation steps
+    critical_actions:                          # behavioral rules from activation steps
+      - "Mark task complete ONLY when both implementation AND tests pass"
+      - "Run full test suite after each task — NEVER proceed with failing tests"
+      - "NEVER lie about tests being written or passing"
     capabilities: "story execution, TDD, code implementation"
 
 workflow_sources:                            # paths to BMAD source files
   instructions: "_bmad/bmm/workflows/4-implementation/dev-story/instructions.xml"
   checklist: "_bmad/bmm/workflows/4-implementation/dev-story/checklist.md"
-  workflow_config: "_bmad/bmm/workflows/4-implementation/dev-story/workflow.yaml"
-  steps: []                                  # optional step files for multi-step workflows
+  steps: []                                  # pre-expanded list of step file paths (ordered)
+                                             # e.g. ["steps/step-01-discovery.md", "steps/step-02-validate.md"]
+                                             # empty when instructions is a single file (XML or workflow.md)
 ```
 
 ## Output Structure
@@ -61,7 +67,7 @@ Produce exactly this structure. Every section is required.
 
 ```markdown
 ---
-description: "BMAD {Workflow Title} ({Agent Name}) — {one-line purpose}"
+description: "BMAD {workflow_title} ({Agent Name}) — {purpose}"
 source: jcampb/mm-bmad/workflows/{output_filename}@main
 
 on:
@@ -80,20 +86,14 @@ tools:
 if: "!contains(github.event.*.labels.*.name, 'needs-human-intervention')"
 
 steps:
-  - name: Read project config
-    id: config
-    run: |
-      if [ -f .bmad/config.yaml ]; then
-        cat .bmad/config.yaml >> $GITHUB_OUTPUT
-      fi
-
-  {additional pre-steps from pre_steps list}
+  {expand each entry in pre_steps using the Pre-Step Templates below}
+  {config-loader is already shown in the template — do NOT emit it twice}
 
 safe-outputs:
   {safe_outputs list}
 ---
 
-# BMAD {Workflow Title} Agent
+# BMAD {workflow_title} Agent
 
 {persona section — see rules below}
 
@@ -145,6 +145,8 @@ After evaluating through all perspectives:
 2. Synthesize into a unified recommendation
 3. Post structured analysis as a single comment
 ```
+
+**Multi-perspective Principles:** For multi-agent workflows, emit a single `## Principles` section containing the union of all agents' principles, deduplicating identical items. Similarly, `## Critical Rules` contains the union of all agents' `critical_actions`.
 
 ## Pre-Step Templates
 
