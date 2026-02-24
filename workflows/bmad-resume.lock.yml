@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-resume@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"e3a9e0078e3e3d45b7e45cd232bf7611e5a3e8d49339f573002a0201af208ad4","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"a7b0a35c50e38d669885a31ddd615554dfbe2b7014059c9dbc5cb9ed2a016e1b","compiler_version":"v0.49.2"}
 
 name: "BMAD Resume Agent"
 "on":
@@ -270,11 +270,13 @@ jobs:
             echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
       - env:
+          COMMENT_AUTHOR_LOGIN: ${{ github.event.comment.user.login }}
+          COMMENT_AUTHOR_TYPE: ${{ github.event.comment.user.type }}
           EVENT_ACTION: ${{ github.event.action }}
           REMOVED_LABEL: ${{ github.event.label.name }}
         id: resume-check
         name: Check if resume applicable
-        run: "# For unlabeled events, check if the removed label was needs-human-intervention\nif [ \"$EVENT_ACTION\" = \"unlabeled\" ]; then\n  if [ \"$REMOVED_LABEL\" != \"needs-human-intervention\" ]; then\n    echo \"skip=true\" >> $GITHUB_OUTPUT\n    echo \"Not a needs-human-intervention label removal — skipping\"\n    exit 0\n  fi\nfi\n# For issue_comment events, check if the issue previously had needs-human-intervention\necho \"skip=false\" >> $GITHUB_OUTPUT\n"
+        run: "# For unlabeled events, check if the removed label was needs-human-intervention\nif [ \"$EVENT_ACTION\" = \"unlabeled\" ]; then\n  if [ \"$REMOVED_LABEL\" != \"needs-human-intervention\" ]; then\n    echo \"skip=true\" >> $GITHUB_OUTPUT\n    echo \"Not a needs-human-intervention label removal — skipping\"\n    exit 0\n  fi\nfi\n# For issue_comment events, skip if the comment is from a bot — prevents self-triggering loops\nif [ \"$EVENT_ACTION\" = \"created\" ]; then\n  if [ \"$COMMENT_AUTHOR_TYPE\" = \"Bot\" ] || [[ \"$COMMENT_AUTHOR_LOGIN\" == *\"[bot]\"* ]]; then\n    echo \"skip=true\" >> $GITHUB_OUTPUT\n    echo \"Comment author is a bot ($COMMENT_AUTHOR_LOGIN) — skipping to prevent feedback loop\"\n    exit 0\n  fi\nfi\necho \"skip=false\" >> $GITHUB_OUTPUT\n"
 
       - name: Configure Git credentials
         env:

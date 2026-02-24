@@ -37,6 +37,8 @@ steps:
     env:
       EVENT_ACTION: ${{ github.event.action }}
       REMOVED_LABEL: ${{ github.event.label.name }}
+      COMMENT_AUTHOR_TYPE: ${{ github.event.comment.user.type }}
+      COMMENT_AUTHOR_LOGIN: ${{ github.event.comment.user.login }}
     run: |
       # For unlabeled events, check if the removed label was needs-human-intervention
       if [ "$EVENT_ACTION" = "unlabeled" ]; then
@@ -46,7 +48,14 @@ steps:
           exit 0
         fi
       fi
-      # For issue_comment events, check if the issue previously had needs-human-intervention
+      # For issue_comment events, skip if the comment is from a bot — prevents self-triggering loops
+      if [ "$EVENT_ACTION" = "created" ]; then
+        if [ "$COMMENT_AUTHOR_TYPE" = "Bot" ] || [[ "$COMMENT_AUTHOR_LOGIN" == *"[bot]"* ]]; then
+          echo "skip=true" >> $GITHUB_OUTPUT
+          echo "Comment author is a bot ($COMMENT_AUTHOR_LOGIN) — skipping to prevent feedback loop"
+          exit 0
+        fi
+      fi
       echo "skip=false" >> $GITHUB_OUTPUT
 
 safe-outputs:
@@ -83,7 +92,7 @@ You are Bob, a Technical Scrum Master + Story Preparation Specialist. Certified 
 ### Step 1: Check pre-step result
 
 1. Read the `resume-check` step output.
-2. If `skip=true`, stop immediately. This event is not relevant to workflow resumption.
+2. If `skip=true`, stop immediately. **Do NOT post any comment.** This event is not relevant to workflow resumption and any comment you post will re-trigger this workflow.
 
 ### Step 2: Read the full conversation thread
 
@@ -118,6 +127,10 @@ You are Bob, a Technical Scrum Master + Story Preparation Specialist. Certified 
 1. Compare the blocker requirements against the human's resolution.
 2. Determine if the resolution provides everything needed to resume the workflow that was halted.
 3. Consider whether the resolution introduces new ambiguities or blockers.
+
+### Step 6c: If this is not a needs-human-intervention resumption scenario
+
+If you examine the thread and determine there is no blocked issue/PR that was just unblocked by a human (e.g., the issue never had `needs-human-intervention`, or this is an unrelated comment), **exit silently without posting any comment**. Do not post "no action taken", "skipping", or any informational message. Posting any comment will re-trigger this workflow.
 
 ### Step 6a: If resolution is sufficient -- resume
 
