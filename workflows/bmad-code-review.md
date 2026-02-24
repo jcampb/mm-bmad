@@ -5,6 +5,7 @@ source: jcampb/mm-bmad/workflows/bmad-code-review@main
 on:
   pull_request:
     types: [labeled, synchronize]
+  workflow_dispatch:
 
 engine: claude
 timeout-minutes: 30

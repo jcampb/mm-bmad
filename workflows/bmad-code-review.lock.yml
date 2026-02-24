@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-code-review@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"84beb375b45c3d1b01399e5cea5418542a0b86065206f92a649e4560b9ca1706","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"8697ad6619d2dcac33489b184a0dfe07d96c39746692acfe3e0ce0a3c502535a","compiler_version":"v0.49.2"}
 
 name: "BMAD Code Review Agent"
 "on":
@@ -33,6 +33,7 @@ name: "BMAD Code Review Agent"
     types:
     - labeled
     - synchronize
+  workflow_dispatch:
 
 permissions: {}
 
