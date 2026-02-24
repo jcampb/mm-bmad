@@ -25,12 +25,13 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-code-review@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"29ca97e0a7c0ec74ec58370ee2a8145b47c7742e944e1ec0263fd16adb742e0b","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"84beb375b45c3d1b01399e5cea5418542a0b86065206f92a649e4560b9ca1706","compiler_version":"v0.49.2"}
 
 name: "BMAD Code Review Agent"
 "on":
   pull_request:
     types:
+    - labeled
     - synchronize
 
 permissions: {}
@@ -264,15 +265,11 @@ jobs:
           fi
       - env:
           AUTHOR: ${{ github.event.sender.login }}
+          EVENT_ACTION: ${{ github.event.action }}
+          LABEL_NAME: ${{ github.event.label.name }}
         id: skip-check
-        name: Skip if human push
-        run: |
-          if [ "$AUTHOR" != "github-actions[bot]" ] && [ "$AUTHOR" != "copilot-swe-agent[bot]" ]; then
-            echo "skip=true" >> $GITHUB_OUTPUT
-            echo "Human push detected — skipping automated review"
-            exit 0
-          fi
-          echo "skip=false" >> $GITHUB_OUTPUT
+        name: Skip if not review-triggering event
+        run: "# For labeled events, only proceed if the label is bmad-review-pending\nif [ \"$EVENT_ACTION\" = \"labeled\" ]; then\n  if [ \"$LABEL_NAME\" != \"bmad-review-pending\" ]; then\n    echo \"skip=true\" >> $GITHUB_OUTPUT\n    echo \"Label '$LABEL_NAME' is not bmad-review-pending — skipping\"\n    exit 0\n  fi\n  echo \"skip=false\" >> $GITHUB_OUTPUT\n  exit 0\nfi\n# For synchronize events, only allow bot pushes\nif [ \"$AUTHOR\" != \"github-actions[bot]\" ] && [ \"$AUTHOR\" != \"copilot-swe-agent[bot]\" ]; then\n  echo \"skip=true\" >> $GITHUB_OUTPUT\n  echo \"Human push detected — skipping automated review\"\n  exit 0\nfi\necho \"skip=false\" >> $GITHUB_OUTPUT\n"
       - env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}

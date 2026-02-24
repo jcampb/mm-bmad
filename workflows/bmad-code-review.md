@@ -4,7 +4,7 @@ source: jcampb/mm-bmad/workflows/bmad-code-review@main
 
 on:
   pull_request:
-    types: [synchronize]
+    types: [labeled, synchronize]
 
 engine: claude
 timeout-minutes: 30
@@ -30,11 +30,24 @@ steps:
         echo "BMAD_EOF" >> $GITHUB_OUTPUT
       fi
 
-  - name: Skip if human push
+  - name: Skip if not review-triggering event
     id: skip-check
     env:
+      EVENT_ACTION: ${{ github.event.action }}
+      LABEL_NAME: ${{ github.event.label.name }}
       AUTHOR: ${{ github.event.sender.login }}
     run: |
+      # For labeled events, only proceed if the label is bmad-review-pending
+      if [ "$EVENT_ACTION" = "labeled" ]; then
+        if [ "$LABEL_NAME" != "bmad-review-pending" ]; then
+          echo "skip=true" >> $GITHUB_OUTPUT
+          echo "Label '$LABEL_NAME' is not bmad-review-pending — skipping"
+          exit 0
+        fi
+        echo "skip=false" >> $GITHUB_OUTPUT
+        exit 0
+      fi
+      # For synchronize events, only allow bot pushes
       if [ "$AUTHOR" != "github-actions[bot]" ] && [ "$AUTHOR" != "copilot-swe-agent[bot]" ]; then
         echo "skip=true" >> $GITHUB_OUTPUT
         echo "Human push detected — skipping automated review"
