@@ -73,9 +73,12 @@ steps:
 
 safe-outputs:
   submit-pull-request-review:
+    github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
   add-comment:
   add-labels:
+    github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
   remove-labels:
+    github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
 ---
 
 # BMAD Code Review Agent

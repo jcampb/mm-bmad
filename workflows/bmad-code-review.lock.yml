@@ -25,7 +25,7 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-code-review@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"8697ad6619d2dcac33489b184a0dfe07d96c39746692acfe3e0ce0a3c502535a","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"6e53b4559a20c5431b6f8db518cff3f0efc2fb4737190b17b72b4665c3e86b1d","compiler_version":"v0.49.2"}
 
 name: "BMAD Code Review Agent"
 "on":

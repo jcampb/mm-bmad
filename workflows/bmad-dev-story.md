@@ -85,9 +85,12 @@ steps:
 
 safe-outputs:
   push-to-pull-request-branch:
+    github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
   add-comment:
   add-labels:
+    github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
   remove-labels:
+    github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
 ---
 
 # BMAD Dev Story Agent
