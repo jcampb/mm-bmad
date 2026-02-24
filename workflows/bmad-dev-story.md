@@ -4,7 +4,7 @@ source: jcampb/mm-bmad/workflows/bmad-dev-story@main
 
 on:
   pull_request:
-    types: [ready_for_review]
+    types: [labeled, ready_for_review]
   pull_request_review:
     types: [submitted]
 
@@ -37,7 +37,24 @@ steps:
     env:
       GH_TOKEN: ${{ github.token }}
       PR: ${{ github.event.pull_request.number }}
+      EVENT_ACTION: ${{ github.event.action }}
+      LABEL_NAME: ${{ github.event.label.name }}
     run: |
+      # For labeled events, only proceed if the applied label is bmad-dev-ready
+      if [ "$EVENT_ACTION" = "labeled" ]; then
+        if [ "$LABEL_NAME" != "bmad-dev-ready" ]; then
+          echo "skip=true" >> $GITHUB_OUTPUT
+          echo "Label '$LABEL_NAME' is not bmad-dev-ready — skipping"
+          exit 0
+        fi
+        # Skip draft PRs — Pipeline Glue converts them to ready-for-review first
+        IS_DRAFT=$(gh pr view "$PR" --json isDraft --jq '.isDraft')
+        if [ "$IS_DRAFT" = "true" ]; then
+          echo "skip=true" >> $GITHUB_OUTPUT
+          echo "PR is a draft — Pipeline Glue will convert to ready-for-review"
+          exit 0
+        fi
+      fi
       LABELS=$(gh pr view "$PR" --json labels --jq '.labels[].name')
       if ! echo "$LABELS" | grep -q "bmad-pipeline"; then
         echo "skip=true" >> $GITHUB_OUTPUT

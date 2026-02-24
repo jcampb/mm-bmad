@@ -5,8 +5,6 @@ source: jcampb/mm-bmad/workflows/bmad-resume@main
 on:
   issues:
     types: [unlabeled]
-  issue_comment:
-    types: [created]
 
 engine: claude
 timeout-minutes: 15
@@ -35,26 +33,12 @@ steps:
   - name: Check if resume applicable
     id: resume-check
     env:
-      EVENT_ACTION: ${{ github.event.action }}
       REMOVED_LABEL: ${{ github.event.label.name }}
-      COMMENT_AUTHOR_TYPE: ${{ github.event.comment.user.type }}
-      COMMENT_AUTHOR_LOGIN: ${{ github.event.comment.user.login }}
     run: |
-      # For unlabeled events, check if the removed label was needs-human-intervention
-      if [ "$EVENT_ACTION" = "unlabeled" ]; then
-        if [ "$REMOVED_LABEL" != "needs-human-intervention" ]; then
-          echo "skip=true" >> $GITHUB_OUTPUT
-          echo "Not a needs-human-intervention label removal — skipping"
-          exit 0
-        fi
-      fi
-      # For issue_comment events, skip if the comment is from a bot — prevents self-triggering loops
-      if [ "$EVENT_ACTION" = "created" ]; then
-        if [ "$COMMENT_AUTHOR_TYPE" = "Bot" ] || [[ "$COMMENT_AUTHOR_LOGIN" == *"[bot]"* ]]; then
-          echo "skip=true" >> $GITHUB_OUTPUT
-          echo "Comment author is a bot ($COMMENT_AUTHOR_LOGIN) — skipping to prevent feedback loop"
-          exit 0
-        fi
+      if [ "$REMOVED_LABEL" != "needs-human-intervention" ]; then
+        echo "skip=true" >> $GITHUB_OUTPUT
+        echo "Not a needs-human-intervention label removal — skipping"
+        exit 0
       fi
       echo "skip=false" >> $GITHUB_OUTPUT
 

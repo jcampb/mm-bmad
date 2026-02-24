@@ -25,13 +25,10 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-resume@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"a7b0a35c50e38d669885a31ddd615554dfbe2b7014059c9dbc5cb9ed2a016e1b","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"3d8afc4ba44795cf655aeb051e6de4fc46479b7c520c0d4c13f5072848774e18","compiler_version":"v0.49.2"}
 
 name: "BMAD Resume Agent"
 "on":
-  issue_comment:
-    types:
-    - created
   issues:
     types:
     - unlabeled
@@ -109,7 +106,6 @@ jobs:
           GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
           GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
           GH_AW_GITHUB_WORKSPACE: ${{ github.workspace }}
-          GH_AW_IS_PR_COMMENT: ${{ github.event.issue.pull_request && 'true' || '' }}
         run: |
           bash /opt/gh-aw/actions/create_prompt_first.sh
           {
@@ -153,9 +149,6 @@ jobs:
           </github-context>
           
           GH_AW_PROMPT_EOF
-          if [ "$GITHUB_EVENT_NAME" = "issue_comment" ] && [ -n "$GH_AW_IS_PR_COMMENT" ] || [ "$GITHUB_EVENT_NAME" = "pull_request_review_comment" ] || [ "$GITHUB_EVENT_NAME" = "pull_request_review" ]; then
-            cat "/opt/gh-aw/prompts/pr_context_prompt.md"
-          fi
           cat << 'GH_AW_PROMPT_EOF'
           </system>
           GH_AW_PROMPT_EOF
@@ -185,7 +178,6 @@ jobs:
           GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
           GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
           GH_AW_GITHUB_WORKSPACE: ${{ github.workspace }}
-          GH_AW_IS_PR_COMMENT: ${{ github.event.issue.pull_request && 'true' || '' }}
           GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_ACTIVATED: ${{ needs.pre_activation.outputs.activated }}
         with:
           script: |
@@ -206,7 +198,6 @@ jobs:
                 GH_AW_GITHUB_REPOSITORY: process.env.GH_AW_GITHUB_REPOSITORY,
                 GH_AW_GITHUB_RUN_ID: process.env.GH_AW_GITHUB_RUN_ID,
                 GH_AW_GITHUB_WORKSPACE: process.env.GH_AW_GITHUB_WORKSPACE,
-                GH_AW_IS_PR_COMMENT: process.env.GH_AW_IS_PR_COMMENT,
                 GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_ACTIVATED: process.env.GH_AW_NEEDS_PRE_ACTIVATION_OUTPUTS_ACTIVATED
               }
             });
@@ -270,13 +261,16 @@ jobs:
             echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
       - env:
-          COMMENT_AUTHOR_LOGIN: ${{ github.event.comment.user.login }}
-          COMMENT_AUTHOR_TYPE: ${{ github.event.comment.user.type }}
-          EVENT_ACTION: ${{ github.event.action }}
           REMOVED_LABEL: ${{ github.event.label.name }}
         id: resume-check
         name: Check if resume applicable
-        run: "# For unlabeled events, check if the removed label was needs-human-intervention\nif [ \"$EVENT_ACTION\" = \"unlabeled\" ]; then\n  if [ \"$REMOVED_LABEL\" != \"needs-human-intervention\" ]; then\n    echo \"skip=true\" >> $GITHUB_OUTPUT\n    echo \"Not a needs-human-intervention label removal — skipping\"\n    exit 0\n  fi\nfi\n# For issue_comment events, skip if the comment is from a bot — prevents self-triggering loops\nif [ \"$EVENT_ACTION\" = \"created\" ]; then\n  if [ \"$COMMENT_AUTHOR_TYPE\" = \"Bot\" ] || [[ \"$COMMENT_AUTHOR_LOGIN\" == *\"[bot]\"* ]]; then\n    echo \"skip=true\" >> $GITHUB_OUTPUT\n    echo \"Comment author is a bot ($COMMENT_AUTHOR_LOGIN) — skipping to prevent feedback loop\"\n    exit 0\n  fi\nfi\necho \"skip=false\" >> $GITHUB_OUTPUT\n"
+        run: |-
+          if [ "$REMOVED_LABEL" != "needs-human-intervention" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Not a needs-human-intervention label removal — skipping"
+            exit 0
+          fi
+          echo "skip=false" >> $GITHUB_OUTPUT
 
       - name: Configure Git credentials
         env:

@@ -25,12 +25,13 @@
 #
 # Source: jcampb/mm-bmad/workflows/bmad-dev-story@main
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"854bf0f7dc8f519a4d4118c7890c5deb7052fc3d51e14fea84c08cef6c4258bd","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"2d614d8c342f68fc11d54fccd645505fb8753316bf62415f849a851edffcf5b0","compiler_version":"v0.49.2"}
 
 name: "BMAD Dev Story Agent"
 "on":
   pull_request:
     types:
+    - labeled
     - ready_for_review
   pull_request_review:
     types:
@@ -275,23 +276,13 @@ jobs:
             echo "BMAD_EOF" >> $GITHUB_OUTPUT
           fi
       - env:
+          EVENT_ACTION: ${{ github.event.action }}
           GH_TOKEN: ${{ github.token }}
+          LABEL_NAME: ${{ github.event.label.name }}
           PR: ${{ github.event.pull_request.number }}
         id: pipeline-check
         name: Check pipeline label
-        run: |
-          LABELS=$(gh pr view "$PR" --json labels --jq '.labels[].name')
-          if ! echo "$LABELS" | grep -q "bmad-pipeline"; then
-            echo "skip=true" >> $GITHUB_OUTPUT
-            echo "No bmad-pipeline label — skipping"
-            exit 0
-          fi
-          if echo "$LABELS" | grep -q "bmad-approved"; then
-            echo "skip=true" >> $GITHUB_OUTPUT
-            echo "PR already approved — skipping"
-            exit 0
-          fi
-          echo "skip=false" >> $GITHUB_OUTPUT
+        run: "# For labeled events, only proceed if the applied label is bmad-dev-ready\nif [ \"$EVENT_ACTION\" = \"labeled\" ]; then\n  if [ \"$LABEL_NAME\" != \"bmad-dev-ready\" ]; then\n    echo \"skip=true\" >> $GITHUB_OUTPUT\n    echo \"Label '$LABEL_NAME' is not bmad-dev-ready — skipping\"\n    exit 0\n  fi\n  # Skip draft PRs — Pipeline Glue converts them to ready-for-review first\n  IS_DRAFT=$(gh pr view \"$PR\" --json isDraft --jq '.isDraft')\n  if [ \"$IS_DRAFT\" = \"true\" ]; then\n    echo \"skip=true\" >> $GITHUB_OUTPUT\n    echo \"PR is a draft — Pipeline Glue will convert to ready-for-review\"\n    exit 0\n  fi\nfi\nLABELS=$(gh pr view \"$PR\" --json labels --jq '.labels[].name')\nif ! echo \"$LABELS\" | grep -q \"bmad-pipeline\"; then\n  echo \"skip=true\" >> $GITHUB_OUTPUT\n  echo \"No bmad-pipeline label — skipping\"\n  exit 0\nfi\nif echo \"$LABELS\" | grep -q \"bmad-approved\"; then\n  echo \"skip=true\" >> $GITHUB_OUTPUT\n  echo \"PR already approved — skipping\"\n  exit 0\nfi\necho \"skip=false\" >> $GITHUB_OUTPUT\n"
       - env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
